@@ -1,0 +1,20 @@
+{{define "content"}}
+<div class="hero">
+<h1>{{.Portal.Title}}</h1>
+{{if .Portal.Intro}}<p class="lead">{{.Portal.Intro}}</p>{{end}}
+{{template "search" .Query}}
+</div>
+{{if .Categories}}
+<h2>Categorieën</h2>
+<ul class="grid">
+{{range .Categories}}<li><a class="card" href="/hulp/c/{{.Slug}}"><strong>{{.Name}}</strong>{{if .Description}}<span>{{.Description}}</span>{{end}}<small>{{.Count}} {{if eq .Count 1}}artikel{{else}}artikelen{{end}}</small></a></li>
+{{end}}</ul>
+{{end}}
+{{if .Popular}}
+<h2>Veelgelezen artikelen</h2>
+<ul class="articles">
+{{range .Popular}}<li><a href="/hulp/a/{{.Slug}}"><strong>{{.Title}}</strong>{{if .Excerpt}}<span>{{.Excerpt}}</span>{{end}}</a></li>
+{{end}}</ul>
+{{end}}
+{{if not .Categories}}<p class="empty">Er zijn nog geen artikelen gepubliceerd.</p>{{end}}
+{{end}}

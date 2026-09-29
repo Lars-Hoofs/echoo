@@ -1,0 +1,30 @@
+{{define "layout"}}<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+{{if .Description}}<meta name="description" content="{{.Description}}">{{end}}
+{{if .NoIndex}}<meta name="robots" content="noindex">{{end}}
+{{if .Canonical}}<link rel="canonical" href="{{.Canonical}}">
+<meta property="og:url" content="{{.Canonical}}">{{end}}
+<meta property="og:title" content="{{.Title}}">
+{{if .Description}}<meta property="og:description" content="{{.Description}}">{{end}}
+<meta property="og:type" content="{{.OGType}}">
+<meta property="og:site_name" content="{{.Portal.Name}}">
+<link rel="stylesheet" href="{{.CSS}}">
+</head>
+<body>
+<a class="skip" href="#main">Naar de inhoud</a>
+<header class="site"><div class="wrap"><a class="brand" href="/hulp">{{if .Portal.LogoText}}{{.Portal.LogoText}}{{else}}{{.Portal.Name}}{{end}}</a></div></header>
+<main id="main"><div class="wrap">
+{{template "content" .}}
+</div></main>
+<footer class="site"><div class="wrap">{{.Portal.Name}}</div></footer>
+</body>
+</html>{{end}}
+{{define "search"}}<form class="search" role="search" action="/hulp/zoeken" method="get">
+<label class="skip" for="q">Zoeken in de kennisbank</label>
+<input id="q" type="search" name="q" value="{{.}}" placeholder="Waar zoek je naar?" maxlength="200" autocomplete="off">
+<button type="submit">Zoeken</button>
+</form>{{end}}

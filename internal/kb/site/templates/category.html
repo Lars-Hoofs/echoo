@@ -1,0 +1,16 @@
+{{define "content"}}
+<nav class="crumbs" aria-label="Kruimelpad"><a href="/hulp">{{.Portal.Name}}</a>{{if .Parent}} / <a href="/hulp/c/{{.Parent.Slug}}">{{.Parent.Name}}</a>{{end}}</nav>
+<h1>{{.Category.Name}}</h1>
+{{if .Category.Description}}<p class="lead">{{.Category.Description}}</p>{{end}}
+{{template "search" ""}}
+{{if .Children}}
+<ul class="grid">
+{{range .Children}}<li><a class="card" href="/hulp/c/{{.Slug}}"><strong>{{.Name}}</strong>{{if .Description}}<span>{{.Description}}</span>{{end}}<small>{{.Count}} {{if eq .Count 1}}artikel{{else}}artikelen{{end}}</small></a></li>
+{{end}}</ul>
+{{end}}
+{{if .Articles}}
+<ul class="articles">
+{{range .Articles}}<li><a href="/hulp/a/{{.Slug}}"><strong>{{.Title}}</strong>{{if .Excerpt}}<span>{{.Excerpt}}</span>{{end}}</a></li>
+{{end}}</ul>
+{{else}}{{if not .Children}}<p class="empty">In deze categorie staan nog geen artikelen.</p>{{end}}{{end}}
+{{end}}

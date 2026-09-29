@@ -1,0 +1,9 @@
+/conf/
+web/node_modules/
+web/dist/*
+!web/dist/.gitkeep
+web/test-results/
+web/playwright-report/
+web/.e2e/
+backups/
+/echoo

@@ -1,0 +1,48 @@
+From: =?utf-8?q?Zo=C3=AB_Support?= <help@example.com>
+To: "Jan de Vries" <jan@example.org>
+Cc: <cc@example.org>
+Subject: =?utf-8?q?R=C3=A9ponse_=C3=A0_votre_commande_=E2=82=AC5?=
+Date: Wed, 04 Mar 2026 10:30:00 +0000
+Message-Id: <echoo.abc.123@example.com>
+In-Reply-To: <parent@example.org>
+References: <root@example.org> <parent@example.org>
+Auto-Submitted: auto-replied
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=boundary-3
+
+--boundary-3
+Content-Type: multipart/related; boundary=boundary-2
+
+--boundary-2
+Content-Type: multipart/alternative; boundary=boundary-1
+
+--boundary-1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+your order has shipped.
+
+--boundary-1
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<p>Hallo <img src=3D"cid:logo"></p>
+--boundary-1--
+
+--boundary-2
+Content-Type: image/png
+Content-Id: <logo>
+Content-Disposition: inline; filename=logo.png
+Content-Transfer-Encoding: base64
+
+UE5HREFUQQ==
+--boundary-2--
+
+--boundary-3
+Content-Type: application/pdf
+Content-Disposition: attachment; filename*=utf-8''rapport%20caf%C3%A9.pdf
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQgYm9keQ==
+--boundary-3--

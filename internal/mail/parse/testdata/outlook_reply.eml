@@ -1,0 +1,55 @@
+Received: from AM0PR01MB1234.eurprd01.prod.exchangelabs.com (2603:10a6:208:1::11)
+ by DB9PR01MB5678.eurprd01.prod.exchangelabs.com with HTTPS; Wed, 4 Mar 2026
+ 08:31:10 +0000
+Authentication-Results: spf=pass (sender IP is 40.107.1.2) smtp.mailfrom=contoso.example; dkim=pass (signature was verified) header.d=contoso.example;dmarc=pass action=none header.from=contoso.example;
+From: Pieter de Vries <p.devries@Contoso.example>
+To: "support@acme.example" <support@acme.example>
+Subject: RE: Offerte kozijnen
+Thread-Topic: Offerte kozijnen
+Thread-Index: AQHb6cIFxk9dZ0mQTQ6F1dQyE0+sVw==
+Date: Wed, 4 Mar 2026 08:31:09 +0000
+Message-ID: <AM0PR01MB1234ABCD5678EF9012@AM0PR01MB1234.eurprd01.prod.exchangelabs.com>
+Accept-Language: nl-NL, en-US
+Content-Language: nl-NL
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+Content-Type: multipart/alternative;
+	boundary="_000_AM0PR01MB1234ABCD5678EF9012AM0PR01MB1234eurprd01pro_"
+MIME-Version: 1.0
+
+--_000_AM0PR01MB1234ABCD5678EF9012AM0PR01MB1234eurprd01pro_
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
+
+Goedemorgen,
+
+Dank voor de offerte. De prijs van =80 4.250,- is akkoord, maar wij willen =
+graag de =93hoogwaardige=94 beglazing en het niveau van de leverancier=92s =
+garantie bespreken.
+
+Met vriendelijke groet,
+Pieter
+
+Van: Acme Support <support@acme.example>
+Verzonden: dinsdag 3 maart 2026 16:45
+Aan: Pieter de Vries <p.devries@contoso.example>
+Onderwerp: Offerte kozijnen
+
+Beste Pieter,
+
+Hierbij de offerte.
+
+--_000_AM0PR01MB1234ABCD5678EF9012AM0PR01MB1234eurprd01pro_
+Content-Type: text/html; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
+
+<html><head><meta http-equiv=3D"Content-Type" content=3D"text/html; charse=
+t=3Dwindows-1252"><style type=3D"text/css" style=3D"display:none;"> P {mar=
+gin-top:0;margin-bottom:0;} </style></head><body dir=3D"ltr"><div>Goedemorg=
+en,</div><div><br></div><div>Dank voor de offerte. De prijs van =80 4.250,-=
+ is akkoord.</div><div><br></div><hr style=3D"display:inline-block;width:98=
+%" tabindex=3D"-1"><div id=3D"divRplyFwdMsg" dir=3D"ltr"><b>Van:</b> Acme S=
+upport &lt;support@acme.example&gt;<br><b>Verzonden:</b> dinsdag 3 maart 20=
+26 16:45<br></div></body></html>
+
+--_000_AM0PR01MB1234ABCD5678EF9012AM0PR01MB1234eurprd01pro_--

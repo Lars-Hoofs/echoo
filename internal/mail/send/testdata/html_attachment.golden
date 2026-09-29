@@ -1,0 +1,32 @@
+From: "Support Team" <help@example.com>
+To: "Jan de Vries" <jan@example.org>
+Subject: Your order
+Date: Wed, 04 Mar 2026 10:30:00 +0000
+Message-Id: <echoo.abc.123@example.com>
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=boundary-2
+
+--boundary-2
+Content-Type: multipart/alternative; boundary=boundary-1
+
+--boundary-1
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+your order has shipped.
+
+--boundary-1
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<p>hi</p>
+--boundary-1--
+
+--boundary-2
+Content-Type: text/plain
+Content-Disposition: attachment; filename=a.txt
+Content-Transfer-Encoding: base64
+
+bm90ZQ==
+--boundary-2--

@@ -1,0 +1,14 @@
+# Compose override for e2e/invites.spec.ts. See the header of that spec for how to run it.
+services:
+  echoo:
+    environment:
+      ECHOO_SMTP_URL: smtps://sink:sink@host.docker.internal:${E2E_SMTP_PORT:-18107}?from=noreply@echoo.test&allow_internal=true
+      # The sink's self-signed certificate is the only trust root Echoo needs in this stack.
+      SSL_CERT_FILE: /run/e2e/smtp-cert.pem
+      # Fake credentials: the spec only checks that the provider redirect is built correctly.
+      ECHOO_OAUTH_GOOGLE_CLIENT_ID: e2e-client
+      ECHOO_OAUTH_GOOGLE_CLIENT_SECRET: e2e-secret
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./web/.e2e/smtp-cert.pem:/run/e2e/smtp-cert.pem:ro

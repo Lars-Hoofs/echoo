@@ -1,0 +1,31 @@
+From: Lotte Smit <lotte@example.org>
+To: Acme Support <support@acme.example>
+Subject: Fwd: Klacht over levering
+Date: Mon, 9 Mar 2026 14:20:00 +0100
+Message-ID: <fwd-attach-001@example.org>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="=_mixed_9f8e7d6c"
+
+--=_mixed_9f8e7d6c
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+
+Kunnen jullie hier even naar kijken? Zie bijlage.
+
+Lotte
+--=_mixed_9f8e7d6c
+Content-Type: message/rfc822
+Content-Disposition: attachment
+
+Received: from mail.example.net by mx.example.org; Sun, 8 Mar 2026 19:00:00 +0100
+From: Klant Klaassen <klant@example.net>
+To: Lotte Smit <lotte@example.org>
+Subject: Klacht over levering
+Date: Sun, 8 Mar 2026 18:59:40 +0100
+Message-ID: <original-complaint-42@example.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Mijn pakket is niet aangekomen.
+
+--=_mixed_9f8e7d6c--

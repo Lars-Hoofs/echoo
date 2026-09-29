@@ -1,0 +1,12 @@
+{{define "content"}}
+<h1>Zoeken</h1>
+{{template "search" .Query}}
+{{if .Query}}
+{{if .Results}}
+<p class="meta">{{len .Results}} {{if eq (len .Results) 1}}resultaat{{else}}resultaten{{end}} voor &ldquo;{{.Query}}&rdquo;</p>
+<ul class="articles">
+{{range .Results}}<li><a href="/hulp/a/{{.Slug}}"><strong>{{.Title}}</strong><span>{{range .Snippet}}{{if .Hit}}<mark>{{.Text}}</mark>{{else}}{{.Text}}{{end}}{{end}}</span></a></li>
+{{end}}</ul>
+{{else}}<p class="empty">Geen artikelen gevonden voor &ldquo;{{.Query}}&rdquo;. Probeer een ander woord of bekijk de <a href="/hulp">categorieën</a>.</p>{{end}}
+{{end}}
+{{end}}

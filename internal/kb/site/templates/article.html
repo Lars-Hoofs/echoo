@@ -1,0 +1,23 @@
+{{define "content"}}
+<nav class="crumbs" aria-label="Kruimelpad"><a href="/hulp">{{.Portal.Name}}</a>{{if .ParentName}} / <a href="/hulp/c/{{.ParentSlug}}">{{.ParentName}}</a>{{end}} / <a href="/hulp/c/{{.CategorySlug}}">{{.CategoryName}}</a></nav>
+<h1>{{.Article.Title}}</h1>
+<p class="meta">Laatst bijgewerkt op {{.Updated}}</p>
+<article class="body">{{.Body}}</article>
+{{if .FeedbackToken}}
+<section class="feedback" aria-labelledby="feedback-title">
+{{if .Thanks}}<p id="feedback-title" role="status">Bedankt voor je reactie.</p>
+{{else}}<form action="/hulp/a/{{.Article.Slug}}/feedback" method="post">
+<p id="feedback-title">Was dit artikel nuttig?</p>
+<input type="hidden" name="token" value="{{.FeedbackToken}}">
+<button type="submit" name="helpful" value="yes" class="secondary">Ja</button>
+<button type="submit" name="helpful" value="no" class="secondary">Nee</button>
+</form>{{end}}
+</section>
+{{end}}
+{{if .Related}}
+<h2>Meer in {{.CategoryName}}</h2>
+<ul class="articles">
+{{range .Related}}<li><a href="/hulp/a/{{.Slug}}"><strong>{{.Title}}</strong></a></li>
+{{end}}</ul>
+{{end}}
+{{end}}

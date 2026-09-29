@@ -1,0 +1,99 @@
+# Quick start: ./scripts/setup.sh once, then `docker compose up -d --build --wait` (see README.md).
+name: echoo
+
+services:
+  db:
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: echoo
+      # Bootstrap superuser: only the init script uses it. Neither Echoo nor `echoo migrate`
+      # ever connects as it.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_admin_password
+    secrets: [db_admin_password, db_owner_password, db_app_password]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d echoo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  # Applies migrations as the schema owner and exits. The server itself only holds the
+  # restricted echoo_app credentials.
+  migrate:
+    build: .
+    image: echoo:local
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["migrate"]
+    environment:
+      ECHOO_DATABASE_URL_FILE: /run/secrets/migrate_database_url
+    secrets: [migrate_database_url]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [backend]
+
+  echoo:
+    build: .
+    image: echoo:local
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ECHOO_BASE_URL: ${ECHOO_BASE_URL:-http://localhost:8080}
+      ECHOO_DATABASE_URL_FILE: /run/secrets/database_url
+      ECHOO_ENCRYPTION_KEYS_FILE: /run/secrets/encryption_keys
+      # Behind a reverse proxy this must be the address range Echoo sees the proxy connect
+      # from (for a proxy on this host: `docker network inspect echoo_default`, field Gateway),
+      # for example ECHOO_TRUSTED_PROXIES=172.18.0.0/16. Left empty, X-Forwarded-For is ignored
+      # and all users share one login rate limit; Echoo logs a warning at startup.
+      ECHOO_TRUSTED_PROXIES: ${ECHOO_TRUSTED_PROXIES:-}
+      # Largest single attachment in MiB (1-100); a reverse proxy must allow bodies a little larger.
+      ECHOO_MAX_ATTACHMENT_MB: ${ECHOO_MAX_ATTACHMENT_MB:-25}
+      ECHOO_LOG_LEVEL: ${ECHOO_LOG_LEVEL:-info}
+      # Prometheus endpoint on a listener of its own, off when empty. Inside the container use
+      # 0.0.0.0:9090 and publish nothing, so only containers on the same network can scrape it.
+      ECHOO_METRICS_ADDR: ${ECHOO_METRICS_ADDR:-}
+    secrets: [database_url, encryption_keys]
+    # Only reachable from this host; put a TLS-terminating reverse proxy in front.
+    ports:
+      - "127.0.0.1:${ECHOO_PORT:-8080}:8080"
+    volumes:
+      - blobs:/data
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [backend, default]
+
+secrets:
+  db_admin_password:
+    file: ./conf/db_admin_password
+  db_owner_password:
+    file: ./conf/db_owner_password
+  db_app_password:
+    file: ./conf/db_app_password
+  database_url:
+    file: ./conf/database_url
+  migrate_database_url:
+    file: ./conf/migrate_database_url
+  encryption_keys:
+    file: ./conf/encryption_keys
+
+volumes:
+  pgdata:
+  # Raw messages and attachments (ECHOO_STORAGE defaults to fs:///data/blobs). Back this up
+  # together with the database.
+  blobs:
+
+networks:
+  # The database is not reachable from outside the compose project.
+  backend:
+    internal: true

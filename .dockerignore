@@ -1,0 +1,13 @@
+.git
+**/node_modules
+web/dist
+conf
+docs/*
+!docs/embed.go
+!docs/openapi.yaml
+*.md
+!README.md
+backups
+web/.e2e
+web/test-results
+web/playwright-report

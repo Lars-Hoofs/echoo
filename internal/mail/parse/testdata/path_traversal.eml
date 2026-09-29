@@ -1,0 +1,37 @@
+From: Mallory <mallory@example.net>
+To: support@acme.example
+Subject: Urgent invoice
+Date: Wed, 11 Mar 2026 03:00:00 +0000
+Message-ID: <traversal-001@example.net>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="b1"
+
+--b1
+Content-Type: text/plain
+
+See attached.
+--b1
+Content-Type: application/octet-stream; name="../../etc/passwd"
+Content-Disposition: attachment; filename="../../etc/passwd"
+Content-Transfer-Encoding: base64
+
+cm9vdDp4OjA6MDpyb290Oi9yb290Oi9iaW4vYmFzaAo=
+--b1
+Content-Type: application/x-msdownload
+Content-Disposition: attachment; filename="C:\\evil.exe"
+Content-Transfer-Encoding: base64
+
+TVqQAAMAAAAEAAAA
+--b1
+Content-Type: text/plain
+Content-Disposition: attachment; filename=".htaccess"
+Content-Transfer-Encoding: base64
+
+UmVxdWlyZSBhbGwgZ3JhbnRlZAo=
+--b1
+Content-Type: image/png
+Content-Disposition: attachment; filename="..\..\windows\system32\..\"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgo=
+--b1--

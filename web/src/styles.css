@@ -1,0 +1,376 @@
+/* Layer order: ron (design tokens and components, src/styles/ron.css) sits between Tailwind's base
+   and its utilities, so a utility class always beats a ron class. */
+@layer theme, base, ron, components, utilities;
+
+@import './styles/ron.css' layer(ron);
+@import 'tailwindcss';
+
+@import '@fontsource/urbanist/latin-300.css';
+@import '@fontsource/urbanist/latin-ext-300.css';
+@import '@fontsource/urbanist/latin-400.css';
+@import '@fontsource/urbanist/latin-ext-400.css';
+@import '@fontsource/urbanist/latin-500.css';
+@import '@fontsource/urbanist/latin-ext-500.css';
+
+/* Palette "signal" (DESIGN.md section 3). ron.css owns the neutrals for both themes; this block
+   only sets the accent, which is the same in light and dark, and the derived values ron has no
+   token for. The neutrals come from ron.css: light in :root, dark in [data-theme='dark'] and,
+   without an explicit theme, in prefers-color-scheme. */
+:root {
+  --accent: #35e27a;
+  --accent-ink: #04150b;
+  --aura-a: #1f6b43;
+  --aura-b: #16323d;
+  /* White on ron's red is 3.3:1; dark ink is 5.9:1. */
+  --alert-ink: #0d0d0d;
+  /* Red as text: ron's alert is a fill colour and too light for small text on white. */
+  --alert-text: color-mix(in srgb, var(--alert) 70%, var(--ink));
+  --scrim: rgb(0 0 0 / 0.5);
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+  }
+}
+
+/* Semantic tokens used across the app, aliased onto ron's. Names predate ron; keep them. */
+:root {
+  --bg-app: var(--surface-2);
+  --bg-surface: var(--surface);
+  --bg-list: var(--surface);
+  --bg-subtle: var(--surface-2);
+  --bg-active: var(--line-strong);
+  --bg-selected: var(--line);
+  --bg-float: var(--surface);
+  --border: var(--line);
+  --border-strong: var(--line-strong);
+  --border-input: var(--line-strong);
+  --text: var(--ink);
+  --text-muted: var(--ink-2);
+  /* ron reserves --ink-3 for numerals and rules (3:1). The app has small faint text, which
+     needs 4.5:1, so faint text uses --ink-2 as well; hierarchy comes from size. */
+  --text-faint: var(--ink-2);
+  --accent-hover: var(--accent);
+  --on-accent: var(--accent-ink);
+  /* The accent is a fill, never text: green on white is 1.7:1. Links and active labels use ink. */
+  --accent-text: var(--ink);
+  --accent-subtle: var(--surface-2);
+  /* Was yellow. At-risk and uncertain states are ink with a glyph. */
+  --signal: var(--ink);
+  --on-signal: var(--bg);
+  --danger: var(--alert);
+  --danger-text: var(--alert-text);
+  --danger-subtle: color-mix(in srgb, var(--alert) 10%, var(--surface));
+  --on-danger: var(--alert-ink);
+  --brand: var(--accent);
+  --note-bg: var(--surface-2);
+  /* HTML mail is drawn on white in both themes; see DESIGN.md. */
+  --paper: #ffffff;
+  --shadow-float: var(--shadow);
+  --shadow-card: none;
+
+  /* Status: only "open" (the customer waits on us) has the accent. */
+  --st-open: var(--accent-ink);
+  --st-open-bg: var(--accent);
+  --st-waiting: var(--ink-2);
+  --st-waiting-bg: var(--surface-2);
+  --st-closed: var(--ink-2);
+  --st-closed-bg: var(--surface-2);
+  --st-spam: var(--ink-2);
+  --st-spam-bg: var(--surface-2);
+
+  /* Labels are neutral: one grey per colour token, told apart by lightness, next to the name. */
+  --lb-slate: color-mix(in srgb, var(--ink) 92%, var(--surface));
+  --lb-blue: color-mix(in srgb, var(--ink) 76%, var(--surface));
+  --lb-teal: color-mix(in srgb, var(--ink) 62%, var(--surface));
+  --lb-green: color-mix(in srgb, var(--ink) 50%, var(--surface));
+  --lb-amber: color-mix(in srgb, var(--ink) 40%, var(--surface));
+  --lb-orange: color-mix(in srgb, var(--ink) 31%, var(--surface));
+  --lb-red: color-mix(in srgb, var(--ink) 23%, var(--surface));
+  --lb-violet: color-mix(in srgb, var(--ink) 16%, var(--surface));
+  --lb-slate-bg: var(--surface-2);
+  --lb-blue-bg: var(--surface-2);
+  --lb-teal-bg: var(--surface-2);
+  --lb-green-bg: var(--surface-2);
+  --lb-amber-bg: var(--surface-2);
+  --lb-orange-bg: var(--surface-2);
+  --lb-red-bg: var(--surface-2);
+  --lb-violet-bg: var(--surface-2);
+
+  /* Charts: ink at falling strength, hairline grid. The accent is not a chart colour. */
+  --chart-1: var(--ink);
+  --chart-2: color-mix(in srgb, var(--ink) 70%, var(--surface));
+  --chart-3: color-mix(in srgb, var(--ink) 45%, var(--surface));
+  --chart-4: color-mix(in srgb, var(--ink) 28%, var(--surface));
+  --chart-5: color-mix(in srgb, var(--ink) 16%, var(--surface));
+  --chart-neutral: var(--ink-3);
+  --chart-grid: var(--line);
+}
+:root[data-theme='dark'] {
+  --bg-float: var(--surface-2);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg-float: var(--surface-2);
+  }
+}
+
+/* Tailwind takes its palette, radii and type scale from the ron tokens only. */
+@theme {
+  --color-*: initial;
+  --color-app: var(--bg-app);
+  --color-active: var(--bg-active);
+  --color-list: var(--bg-list);
+  --color-surface: var(--bg-surface);
+  --color-subtle: var(--bg-subtle);
+  --color-selected: var(--bg-selected);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-line-input: var(--border-input);
+  --color-ink: var(--text);
+  --color-on-ink: var(--bg);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-signal: var(--signal);
+  --color-on-signal: var(--on-signal);
+  --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
+  --color-danger-subtle: var(--danger-subtle);
+  --color-on-danger: var(--on-danger);
+  --color-brand: var(--brand);
+  --color-note: var(--note-bg);
+  --color-paper: var(--paper);
+  --color-float: var(--bg-float);
+  --color-scrim: var(--scrim);
+  --color-st-open: var(--st-open);
+  --color-st-open-bg: var(--st-open-bg);
+  --color-st-waiting: var(--st-waiting);
+  --color-st-waiting-bg: var(--st-waiting-bg);
+  --color-st-closed: var(--st-closed);
+  --color-st-closed-bg: var(--st-closed-bg);
+  --color-st-spam: var(--st-spam);
+  --color-st-spam-bg: var(--st-spam-bg);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-neutral: var(--chart-neutral);
+  --color-chart-grid: var(--chart-grid);
+  --color-lb-slate: var(--lb-slate);
+  --color-lb-slate-bg: var(--lb-slate-bg);
+  --color-lb-blue: var(--lb-blue);
+  --color-lb-blue-bg: var(--lb-blue-bg);
+  --color-lb-teal: var(--lb-teal);
+  --color-lb-teal-bg: var(--lb-teal-bg);
+  --color-lb-green: var(--lb-green);
+  --color-lb-green-bg: var(--lb-green-bg);
+  --color-lb-amber: var(--lb-amber);
+  --color-lb-amber-bg: var(--lb-amber-bg);
+  --color-lb-orange: var(--lb-orange);
+  --color-lb-orange-bg: var(--lb-orange-bg);
+  --color-lb-red: var(--lb-red);
+  --color-lb-red-bg: var(--lb-red-bg);
+  --color-lb-violet: var(--lb-violet);
+  --color-lb-violet-bg: var(--lb-violet-bg);
+  --color-transparent: transparent;
+
+  --font-sans: var(--font);
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Weights: 300 for large numerals and titles, 400 for text. 500 is loaded for the logo and for
+     unread emphasis; there is no 600, so semibold and bold resolve to 500 instead of a synthetic face. */
+  --font-weight-light: 300;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+
+  /* ron type scale 12 / 14 / 16 / 20 / 28 / 40 / 64 / 96, shrinking on small screens via --t-*. */
+  --text-*: initial;
+  --text-xs: var(--t-xs);
+  --text-xs--line-height: 16px;
+  --text-sm: var(--t-xs);
+  --text-sm--line-height: 16px;
+  --text-base: var(--t-s);
+  --text-base--line-height: 20px;
+  --text-read: var(--t-m);
+  --text-read--line-height: 24px;
+  --text-lg: var(--t-m);
+  --text-lg--line-height: 24px;
+  --text-xl: var(--t-l);
+  --text-xl--line-height: 28px;
+  --text-kpi: var(--t-xl);
+  --text-kpi--line-height: 1.1;
+  --text-h3: var(--t-xl);
+  --text-h3--line-height: 1.1;
+  --text-h2: var(--t-2xl);
+  --text-h2--line-height: 1.05;
+  --text-h1: var(--t-3xl);
+  --text-h1--line-height: 1;
+  --text-display: var(--t-4xl);
+  --text-display--line-height: 0.95;
+
+  /* ron radii: 12 small, 24 card, 40 large area, pill. */
+  --radius-*: initial;
+  --radius-sm: var(--r-s);
+  --radius-md: var(--r-s);
+  --radius-lg: var(--r-m);
+  --radius-xl: var(--r-l);
+  --radius-full: 9999px;
+
+  --shadow-*: initial;
+  --shadow-float: var(--shadow-float);
+  --shadow-card: var(--shadow-card);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--bg-app);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--t-s);
+    line-height: 20px;
+  }
+  ::selection {
+    background: var(--line-strong);
+  }
+  /* One icon spec app-wide: stroke 1.5 whatever a call site passes. */
+  svg.lucide {
+    stroke-width: 1.5;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@keyframes echoo-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Rich text editor (TipTap). Only tokens, no fixed colours. */
+.echoo-prose {
+  min-height: 4.5rem;
+  max-height: 40vh;
+  font-size: var(--t-m);
+  line-height: 24px;
+  overflow-wrap: anywhere;
+}
+.echoo-prose > * + * {
+  margin-top: 0.5rem;
+}
+.echoo-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--text-faint);
+}
+.echoo-prose ul,
+.echoo-prose ol {
+  padding-left: 1.5rem;
+}
+.echoo-prose ul {
+  list-style: disc;
+}
+.echoo-prose ol {
+  list-style: decimal;
+}
+.echoo-prose blockquote {
+  border-left: 2px solid var(--border-strong);
+  padding-left: 0.75rem;
+  color: var(--text-muted);
+}
+.echoo-prose a {
+  color: var(--accent-text);
+  text-decoration: underline;
+}
+.echoo-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-subtle);
+  border-radius: var(--r-s);
+  padding: 0 0.25rem;
+}
+.echoo-prose pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-subtle);
+  border-radius: var(--r-s);
+  padding: 0.5rem 0.75rem;
+  overflow-x: auto;
+}
+.echoo-prose pre code {
+  background: none;
+  padding: 0;
+}
+.echoo-prose h1,
+.echoo-prose h2,
+.echoo-prose h3 {
+  font-weight: 500;
+}
+.echoo-prose h1 {
+  font-size: var(--t-l);
+}
+.echoo-prose h2 {
+  font-size: var(--t-m);
+}
+.echoo-var {
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  border-radius: var(--r-s);
+  padding: 0 0.125rem;
+}
+.echoo-var-unknown {
+  background: var(--danger-subtle);
+  color: var(--danger-text);
+}
+.echoo-mention {
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  border-radius: var(--r-s);
+  padding: 0 0.25rem;
+  font-weight: 500;
+}
+.echoo-signature .echoo-prose {
+  min-height: 0;
+  max-height: none;
+  font-size: var(--t-s);
+  line-height: 20px;
+  color: var(--text-muted);
+}
+
+/* Sidebar navigation: only the list scrolls, with a soft fade at the bottom (as in ron's CRM). */
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: var(--s-6);
+  mask-image: linear-gradient(var(--ink) calc(100% - var(--s-6)), transparent);
+}
+
+/* The accent count stays accent on the active (ink) item; ron would invert every tag there. */
+.nav-item.is-active .tag-accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+}

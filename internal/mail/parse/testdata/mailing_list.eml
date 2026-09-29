@@ -1,0 +1,29 @@
+Return-Path: <dev-nl-bounces@lists.example.org>
+Authentication-Results: mx.acme.example; spf=pass smtp.mailfrom=lists.example.org; dkim=pass header.d=example.net
+Received: from lists.example.org (lists.example.org [192.0.2.25])
+	by mx.acme.example (Postfix) with ESMTPS id 4F1B2C0123
+	for <support@acme.example>; Thu,  5 Mar 2026 11:02:44 +0100 (CET)
+List-Id: Nederlandse ontwikkelaars <dev-nl.lists.example.org>
+List-Unsubscribe: <https://lists.example.org/unsub/dev-nl>, <mailto:dev-nl-request@lists.example.org?subject=unsubscribe>
+List-Post: <mailto:dev-nl@lists.example.org>
+Precedence: list
+Sender: dev-nl-bounces@lists.example.org
+Reply-To: dev-nl@lists.example.org
+From: =?UTF-8?Q?Sanne_Bakker?= <sanne@example.net>
+To: dev-nl@lists.example.org
+Subject: [dev-nl] Re: =?UTF-8?Q?Aanbeveling_voor_een_e-mailbibliotheek=3F?=
+Date: Thu, 05 Mar 2026 11:02:30 +0100
+Message-ID: <20260305110230.GA4711@example.net>
+In-Reply-To: <20260304201500.GB1203@example.org>
+References: <20260304150000.GA9001@example.com> <20260304201500.GB1203@example.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 8bit
+
+Ik gebruik zelf go-message en ben er erg tevreden over. Het is een  
+kleine bibliotheek die precies doet wat je nodig hebt.
+
+-- 
+Sanne
+_______________________________________________
+dev-nl mailing list

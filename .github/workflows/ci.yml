@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - uses: sqlc-dev/setup-sqlc@bac53b7fb28c039a6c7f5736fd1e89744021bdd6 # v5.0.0
+        with:
+          sqlc-version: 1.31.1
+      - name: Generated queries are up to date
+        run: sqlc diff
+      # go:embed needs web/dist to exist; the Go job does not build the frontend.
+      - run: mkdir -p web/dist && touch web/dist/.gitkeep
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.14.0
+      - name: Tests (integration tests use a real Postgres via testcontainers)
+        run: go test -race -count=1 ./...
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm audit --audit-level=high
+      - run: npm run build
+
+  scripts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # shellcheck is preinstalled on the runner image.
+      - run: shellcheck scripts/*.sh docker/postgres-init/*.sh
+
+  image:
+    runs-on: ubuntu-24.04
+    needs: [go, web]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the image
+        run: docker build -t echoo:local .
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: echoo:local
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: SBOM (CycloneDX)
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: echoo:local
+          format: cyclonedx-json
+          output-file: echoo.cdx.json
+
+  # Every Playwright spec in one run against a fresh stack, the way README.md describes it
+  # (setup.sh, compose up with the migrate service, owner account). invites.spec.ts needs the SMTP
+  # sink and the compose override that points system mail at it; the specs that seed data with SQL
+  # need ECHOO_E2E_COMPOSE_PROJECT (every spec requires it).
+  e2e:
+    runs-on: ubuntu-24.04
+    needs: [go, web]
+    env:
+      # Read by every `docker compose` call below. The specs pass ECHOO_E2E_COMPOSE_PROJECT to
+      # `docker compose -p` themselves and refuse to run without it.
+      COMPOSE_PROJECT_NAME: echoo-e2e
+      COMPOSE_FILE: docker-compose.yml:web/e2e/compose.smtp.yml
+      E2E_SMTP_PORT: "18107"
+      ECHOO_E2E_COMPOSE_PROJECT: echoo-e2e
+      ECHOO_E2E_SMTP_SINK: http://127.0.0.1:18108
+      # roles.spec.ts serves a fake identity provider on the runner; the containers reach it through
+      # the host-gateway entry of the compose override.
+      ECHOO_E2E_FAKE_IDP_HOST: host.docker.internal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install the test tooling
+        working-directory: web
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Start the SMTP sink
+        working-directory: web
+        run: |
+          mkdir -p .e2e
+          node e2e/smtp-sink.ts 18107 18108 .e2e/smtp-cert.pem > "$RUNNER_TEMP/smtp-sink.log" 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:18108/messages > /dev/null && exit 0
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/smtp-sink.log"
+          exit 1
+      - name: Build and start the stack
+        run: |
+          ./scripts/setup.sh
+          docker compose up -d --build --wait
+      - name: Create the owner account
+        run: |
+          pw=$(docker compose exec -T echoo /echoo admin create-owner --email owner@example.com --name Eigenaar | sed -n 's/^Temporary password: //p')
+          echo "::add-mask::$pw"
+          echo "ECHOO_E2E_OWNER_PASSWORD=$pw" >> "$GITHUB_ENV"
+      - name: End-to-end tests (all specs)
+        working-directory: web
+        run: npx playwright test
+      - name: Fail when a spec was skipped
+        if: success()
+        working-directory: web
+        run: jq -e '.stats.skipped == 0 and .stats.unexpected == 0 and .stats.expected > 0' test-results/results.json
+      - name: Backup and restore round trip
+        run: |
+          count() { docker compose exec -T db psql -U postgres -d echoo -Atc "SELECT (SELECT count(*) FROM conversations) || ' ' || (SELECT count(*) FROM messages) || ' ' || (SELECT count(*) FROM users)"; }
+          before=$(count)
+          scripts/backup.sh "$RUNNER_TEMP/backups"
+          docker compose down -v
+          docker compose up -d --wait db
+          scripts/restore.sh --yes "$(ls -d "$RUNNER_TEMP"/backups/echoo-* | tail -n 1)"
+          curl -fsS http://localhost:8080/readyz
+          after=$(count)
+          echo "before: $before / after: $after"
+          test "$before" = "$after"
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report
+            web/test-results
+      - name: Stack logs
+        if: failure()
+        run: docker compose logs

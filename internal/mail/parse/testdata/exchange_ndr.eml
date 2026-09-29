@@ -1,0 +1,64 @@
+Received: from AM0PR02MB4321.eurprd02.prod.outlook.com (2603:10a6:208:5::1)
+ by DB8PR02MB1111.eurprd02.prod.outlook.com with HTTPS; Sat, 14 Mar 2026 10:15:00 +0000
+From: Microsoft Outlook <MicrosoftExchange329e71ec88ae4615bbc36ab6ce41109e@contoso.example>
+To: support@acme.example
+Date: Sat, 14 Mar 2026 10:14:59 +0000
+Message-ID: <DB8PR02MB1111ABCDEF0123456789@DB8PR02MB1111.eurprd02.prod.outlook.com>
+Subject: Undeliverable: Uw offerte
+Content-Language: en-US
+X-MS-Exchange-Message-Is-Ndr:
+Content-Type: multipart/report; boundary="9b8a7c6d5e4f"; report-type=delivery-status
+MIME-Version: 1.0
+Auto-Submitted: auto-replied
+
+--9b8a7c6d5e4f
+Content-Type: multipart/alternative; boundary="1a2b3c4d5e6f"
+
+--1a2b3c4d5e6f
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+Delivery has failed to these recipients or groups:
+
+mark.bos@contoso.example
+Your message wasn't delivered because the recipient's email provider rejected=
+ it.
+
+--1a2b3c4d5e6f
+Content-Type: text/html; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+<html><body><h1>Your message wasn't delivered</h1><p>The recipient's email p=
+rovider rejected it.</p></body></html>
+
+--1a2b3c4d5e6f--
+
+--9b8a7c6d5e4f
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns;DB8PR02MB1111.eurprd02.prod.outlook.com
+Received-From-MTA: dns;mx.acme.example
+Arrival-Date: Sat, 14 Mar 2026 10:14:59 +0000
+Original-Envelope-Id: <DB8PR02MB1111ABCDEF@contoso.example>
+
+Final-Recipient: rfc822;mark.bos@contoso.example
+Action: failed
+Status: 5.4.1
+Remote-MTA: dns;contoso-example.mail.protection.outlook.com
+Diagnostic-Code: smtp;550 5.4.1 Recipient address rejected: Access denied. AS(201806281) [AM0PR02FT099.eop-EUR02.prod.protection.outlook.com 2026-03-14T10:14:59.812Z]
+
+--9b8a7c6d5e4f
+Content-Type: message/rfc822
+
+Received: from mx.acme.example (203.0.113.44) by AM0PR02MB4321.eurprd02.prod.outlook.com with SMTP; Sat, 14 Mar 2026 10:14:58 +0000
+From: Acme Support <support@acme.example>
+To: mark.bos@contoso.example
+Subject: Uw offerte
+Message-ID: <echoo.0123456789abcdef0123456789abcdef.5566778899aabbcc@acme.example>
+Date: Sat, 14 Mar 2026 10:14:57 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hierbij uw offerte.
+
+--9b8a7c6d5e4f--
