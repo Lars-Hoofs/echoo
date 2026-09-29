@@ -84,6 +84,9 @@ type Result struct {
 
 // Deliver sends raw to rcpt over one SMTP connection. It never falls back to plaintext.
 func Deliver(ctx context.Context, cfg SMTPConfig, from string, rcpt []string, raw []byte) Result {
+	if err := checkRecipients(rcpt); err != nil {
+		return Result{Outcome: PermanentFailure, Err: err}
+	}
 	if cfg.TLS != TLSImplicit && cfg.TLS != TLSStartTLS {
 		return Result{Outcome: PermanentFailure, Err: fmt.Errorf("unsupported smtp tls mode %q", cfg.TLS)}
 	}

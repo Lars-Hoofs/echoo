@@ -809,8 +809,10 @@ func TestKBPagesAreFastWithAThousandArticles(t *testing.T) {
 			}
 		}
 		slices.Sort(durations)
-		if median := durations[len(durations)/2]; median > 50*time.Millisecond {
-			t.Errorf("%s: median %v, want under 50ms", p, median)
+		// The budget catches order-of-magnitude regressions (a query per article, an unindexed
+		// scan), not milliseconds: shared CI runners are several times slower than a laptop.
+		if median := durations[len(durations)/2]; median > 200*time.Millisecond {
+			t.Errorf("%s: median %v, want under 200ms", p, median)
 		}
 	}
 	if res := e.get("/hulp/zoeken?q=facturen"); strings.Count(res.body, "<mark>") == 0 || strings.Count(res.body, `<li><a href="/hulp/a/`) != 20 {

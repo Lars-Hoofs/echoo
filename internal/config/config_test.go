@@ -313,3 +313,21 @@ func TestClamAVAddr(t *testing.T) {
 		t.Fatalf("a socket path must be refused: %v", err)
 	}
 }
+
+func TestOutboundAllowedDomains(t *testing.T) {
+	c, err := Load(env(valid()))
+	if err != nil || c.OutboundAllowedDomains != nil {
+		t.Fatalf("default: %v %v", c, err)
+	}
+	m := valid()
+	m["ECHOO_OUTBOUND_ALLOWED_DOMAINS"] = "Thermacon.nl, example.org"
+	if c, err = Load(env(m)); err != nil || strings.Join(c.OutboundAllowedDomains, ",") != "thermacon.nl,example.org" {
+		t.Fatalf("configured: %v %v", c, err)
+	}
+	for _, bad := range []string{"@thermacon.nl", "thermacon", "a b.nl"} {
+		m["ECHOO_OUTBOUND_ALLOWED_DOMAINS"] = bad
+		if _, err := Load(env(m)); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
+	}
+}

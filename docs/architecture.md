@@ -317,6 +317,7 @@ All via environment, validated at startup; secrets can come from `ECHOO_<NAME>_F
 | `ECHOO_OAUTH_GOOGLE_CLIENT_ID` / `_SECRET`, `ECHOO_OAUTH_MICROSOFT_CLIENT_ID` / `_SECRET` / `_TENANT` | OAuth2 mailboxes; a provider without credentials is hidden (`docs/mail-oauth.md`). |
 | `ECHOO_SYSTEM_MAILBOX` or `ECHOO_SMTP_URL` | Sender of system mail: an existing mailbox, or a dedicated relay (`smtps://user:pass@host:465?from=...`). Neither set: no invitations or email reset, temporary passwords remain. |
 | `ECHOO_CAMPAIGN_MAX_RATE` | Highest sending rate a campaign may ask for, in messages per minute per mailbox (1-1000, default 120). Set it to what the mail provider allows. |
+| `ECHOO_OUTBOUND_ALLOWED_DOMAINS` | Empty (default) or a comma-separated list such as `example.com`: every delivery (replies, system mail, campaigns) to a recipient outside these domains fails permanently before a connection is made. For trial runs against live mailboxes. |
 | `ECHOO_METRICS_ADDR` | Empty (default, off) or a listen address such as `127.0.0.1:9090` for the Prometheus endpoint, on a listener of its own. |
 | `ECHOO_LOG_LEVEL` | `info` default. |
 

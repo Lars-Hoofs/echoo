@@ -39,6 +39,9 @@ type Config struct {
 	// CampaignMaxRate is the highest sending rate, in messages per minute and per mailbox, a
 	// campaign may ask for. Providers cap what a mailbox may send; set this to their limit.
 	CampaignMaxRate int
+	// OutboundAllowedDomains, when set, limits all outgoing mail to recipients in these
+	// domains, from ECHOO_OUTBOUND_ALLOWED_DOMAINS. For trial runs against a live mailbox.
+	OutboundAllowedDomains []string
 
 	// OAuth client credentials for Google and Microsoft mailboxes. A provider is offered in
 	// the UI only when both its client ID and secret are set.
@@ -206,6 +209,15 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 			continue
 		}
 		c.TrustedProxies = append(c.TrustedProxies, p.Masked())
+	}
+
+	for _, d := range splitList(get("ECHOO_OUTBOUND_ALLOWED_DOMAINS", false)) {
+		d = strings.ToLower(d)
+		if strings.ContainsAny(d, "@ ") || !strings.Contains(d, ".") {
+			errs = append(errs, fmt.Errorf("ECHOO_OUTBOUND_ALLOWED_DOMAINS: %q is not a domain like example.com", d))
+			continue
+		}
+		c.OutboundAllowedDomains = append(c.OutboundAllowedDomains, d)
 	}
 
 	if lvl := get("ECHOO_LOG_LEVEL", false); lvl != "" {

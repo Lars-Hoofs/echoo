@@ -59,6 +59,8 @@ services:
       # Largest single attachment in MiB (1-100); a reverse proxy must allow bodies a little larger.
       ECHOO_MAX_ATTACHMENT_MB: ${ECHOO_MAX_ATTACHMENT_MB:-25}
       ECHOO_LOG_LEVEL: ${ECHOO_LOG_LEVEL:-info}
+      # Comma-separated domains; when set, mail to anyone outside them is refused (trial runs).
+      ECHOO_OUTBOUND_ALLOWED_DOMAINS: ${ECHOO_OUTBOUND_ALLOWED_DOMAINS:-}
       # Prometheus endpoint on a listener of its own, off when empty. Inside the container use
       # 0.0.0.0:9090 and publish nothing, so only containers on the same network can scrape it.
       ECHOO_METRICS_ADDR: ${ECHOO_METRICS_ADDR:-}

@@ -112,6 +112,10 @@ func setup(ctx context.Context) (*app, error) {
 		return nil, fmt.Errorf("ECHOO_ENCRYPTION_KEYS: %w", err)
 	}
 	mail.SetMessageIDKey(keys.DeriveAll("message-id")...)
+	send.RestrictRecipients(cfg.OutboundAllowedDomains)
+	if len(cfg.OutboundAllowedDomains) > 0 {
+		slog.Warn("outgoing mail is restricted", "allowed_domains", cfg.OutboundAllowedDomains)
+	}
 	store, err := storage.FromURL(cfg.Storage, cfg.S3AccessKey, cfg.S3SecretKey)
 	if err != nil {
 		return nil, fmt.Errorf("ECHOO_STORAGE: %w", err)
