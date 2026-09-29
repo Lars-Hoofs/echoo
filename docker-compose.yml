@@ -59,6 +59,19 @@ services:
       # Largest single attachment in MiB (1-100); a reverse proxy must allow bodies a little larger.
       ECHOO_MAX_ATTACHMENT_MB: ${ECHOO_MAX_ATTACHMENT_MB:-25}
       ECHOO_LOG_LEVEL: ${ECHOO_LOG_LEVEL:-info}
+      # Sender of invitations, password resets and notifications: an existing mailbox address,
+      # or a relay URL such as smtps://user:pass@host:465?from=support@example.com. Not both.
+      ECHOO_SYSTEM_MAILBOX: ${ECHOO_SYSTEM_MAILBOX:-}
+      ECHOO_SMTP_URL: ${ECHOO_SMTP_URL:-}
+      ECHOO_CAMPAIGN_MAX_RATE: ${ECHOO_CAMPAIGN_MAX_RATE:-}
+      # host:port of a clamd daemon; empty turns virus scanning off.
+      ECHOO_CLAMAV_ADDR: ${ECHOO_CLAMAV_ADDR:-}
+      # OAuth2 mailboxes (docs/mail-oauth.md); a provider without credentials is hidden.
+      ECHOO_OAUTH_GOOGLE_CLIENT_ID: ${ECHOO_OAUTH_GOOGLE_CLIENT_ID:-}
+      ECHOO_OAUTH_GOOGLE_CLIENT_SECRET: ${ECHOO_OAUTH_GOOGLE_CLIENT_SECRET:-}
+      ECHOO_OAUTH_MICROSOFT_CLIENT_ID: ${ECHOO_OAUTH_MICROSOFT_CLIENT_ID:-}
+      ECHOO_OAUTH_MICROSOFT_CLIENT_SECRET: ${ECHOO_OAUTH_MICROSOFT_CLIENT_SECRET:-}
+      ECHOO_OAUTH_MICROSOFT_TENANT: ${ECHOO_OAUTH_MICROSOFT_TENANT:-}
       # Comma-separated domains; when set, mail to anyone outside them is refused (trial runs).
       ECHOO_OUTBOUND_ALLOWED_DOMAINS: ${ECHOO_OUTBOUND_ALLOWED_DOMAINS:-}
       # Prometheus endpoint on a listener of its own, off when empty. Inside the container use

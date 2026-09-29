@@ -331,3 +331,21 @@ func TestOutboundAllowedDomains(t *testing.T) {
 		}
 	}
 }
+
+// docker-compose.yml passes every optional variable through, empty when unset in .env.
+func TestEmptyOptionalVariablesMeanDefaults(t *testing.T) {
+	m := valid()
+	for _, k := range []string{"ECHOO_SYSTEM_MAILBOX", "ECHOO_SMTP_URL", "ECHOO_CAMPAIGN_MAX_RATE", "ECHOO_CLAMAV_ADDR",
+		"ECHOO_OAUTH_GOOGLE_CLIENT_ID", "ECHOO_OAUTH_GOOGLE_CLIENT_SECRET", "ECHOO_OAUTH_MICROSOFT_CLIENT_ID",
+		"ECHOO_OAUTH_MICROSOFT_CLIENT_SECRET", "ECHOO_OAUTH_MICROSOFT_TENANT", "ECHOO_OUTBOUND_ALLOWED_DOMAINS", "ECHOO_METRICS_ADDR"} {
+		m[k] = ""
+	}
+	c, err := Load(env(m))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.SystemMailbox != "" || c.SystemSMTP != nil || c.ClamAVAddr != "" || c.CampaignRateLimit() != DefaultCampaignMaxRate ||
+		c.OAuthMicrosoftTenant != "common" || c.OutboundAllowedDomains != nil {
+		t.Fatalf("empty values changed the defaults: %+v", c)
+	}
+}
