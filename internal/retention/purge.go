@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
+	"net/netip"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -39,6 +41,7 @@ func NewService(pool *pgxpool.Pool, blobs contacts.Blobs) *Service {
 type Result struct {
 	ClosedConversations int64
 	SpamConversations   int64
+	TrashConversations  int64
 	Attachments         int64
 	AuditEntries        int64
 }
@@ -77,6 +80,11 @@ func (s *Service) Run(ctx context.Context) (Result, error) {
 			n, err := s.purgeConversations(ctx, mb, "spam", s.days(*p.SpamDays))
 			step(n, err, &res.SpamConversations)
 		}
+		if p.TrashDays != nil {
+			entry := audit.Entry{Action: audit.RetentionPurged, Metadata: map[string]any{"kind": "trash_conversations"}}
+			n, err := s.purgeTrash(ctx, mb, s.days(*p.TrashDays), entry, true)
+			step(n, err, &res.TrashConversations)
+		}
 		if p.AttachmentMonths != nil {
 			n, err := s.purgeAttachments(ctx, mb, s.months(*p.AttachmentMonths))
 			step(n, err, &res.Attachments)
@@ -90,51 +98,165 @@ func (s *Service) Run(ctx context.Context) (Result, error) {
 }
 
 // purgeConversations deletes conversations in the given status whose last activity is before
-// the cutoff, batch by batch. Attachment files and raw messages leave through the deletion
-// queue; the raw message rows stay (blanked) so IMAP sync does not import the mail again.
+// the cutoff, batch by batch.
 func (s *Service) purgeConversations(ctx context.Context, mailbox pgtype.UUID, status string, before time.Time) (int64, error) {
+	pick := func(q *dbq.Queries) ([]pgtype.UUID, error) {
+		return q.RetentionPickConversations(ctx, dbq.RetentionPickConversationsParams{
+			MailboxID: mailbox, Status: status, Before: ts(before), BatchSize: BatchSize,
+		})
+	}
+	entry := audit.Entry{Action: audit.RetentionPurged, TargetType: "mailbox", TargetID: mailbox.String(),
+		Metadata: map[string]any{"kind": status + "_conversations"}}
+	total, err := s.purgeBatches(ctx, pick, entry, true)
+	if err != nil {
+		return total, fmt.Errorf("purge %s conversations: %w", status, err)
+	}
+	return total, nil
+}
+
+// purgeTrash deletes conversations of the mailbox that went into the trash before the cutoff.
+func (s *Service) purgeTrash(ctx context.Context, mailbox pgtype.UUID, before time.Time, entry audit.Entry, drain bool) (int64, error) {
+	pick := func(q *dbq.Queries) ([]pgtype.UUID, error) {
+		return q.TrashPickExpired(ctx, dbq.TrashPickExpiredParams{MailboxID: mailbox, Before: ts(before), BatchSize: BatchSize})
+	}
+	entry.TargetType, entry.TargetID = "mailbox", mailbox.String()
+	total, err := s.purgeBatches(ctx, pick, entry, drain)
+	if err != nil {
+		return total, fmt.Errorf("purge trash: %w", err)
+	}
+	return total, nil
+}
+
+// By is who asks for a manual purge, for the audit log.
+type By struct {
+	UserID pgtype.UUID
+	IP     *netip.Addr
+}
+
+// EmptyTrash permanently deletes everything in the trash of the given mailboxes, except
+// conversations with mail still being sent. Files are only queued for deletion; call Drain.
+func (s *Service) EmptyTrash(ctx context.Context, mailboxes []pgtype.UUID, by By) (int64, error) {
+	var total int64
+	// The cutoff is taken once, so a conversation trashed while this runs is left alone.
+	before := s.now()
+	entry := audit.Entry{Actor: by.UserID, IP: by.IP, Action: audit.ConversationsPurged, Metadata: map[string]any{"emptied_trash": true}}
+	for _, mb := range mailboxes {
+		n, err := s.purgeTrash(ctx, mb, before, entry, false)
+		total += n
+		if err != nil {
+			return total, err
+		}
+	}
+	return total, nil
+}
+
+// PurgeOutcome says what happened to one conversation of PurgeTrashed.
+type PurgeOutcome int
+
+const (
+	Purged PurgeOutcome = iota
+	// NotInTrash covers conversations that do not exist, are outside the mailboxes or are not
+	// in the trash.
+	NotInTrash
+	// StillSending conversations have mail on its way out and are kept.
+	StillSending
+)
+
+// PurgeTrashed permanently deletes the given conversations, which must be in the trash of one
+// of the mailboxes, in one transaction with one audit entry. Files are only queued for
+// deletion; call Drain.
+func (s *Service) PurgeTrashed(ctx context.Context, ids, mailboxes []pgtype.UUID, by By) (map[pgtype.UUID]PurgeOutcome, error) {
+	out := make(map[pgtype.UUID]PurgeOutcome, len(ids))
+	for _, id := range ids {
+		out[id] = NotInTrash
+	}
+	err := db.InTx(ctx, s.pool, func(q *dbq.Queries) error {
+		rows, err := q.TrashLockForPurge(ctx, dbq.TrashLockForPurgeParams{Ids: ids, MailboxIds: mailboxes})
+		if err != nil {
+			return err
+		}
+		var purge []pgtype.UUID
+		for _, r := range rows {
+			if r.Sending {
+				out[r.ID] = StillSending
+				continue
+			}
+			out[r.ID] = Purged
+			purge = append(purge, r.ID)
+		}
+		if len(purge) == 0 {
+			return nil
+		}
+		_, err = deleteConversations(ctx, q, purge, audit.Entry{Actor: by.UserID, IP: by.IP, Action: audit.ConversationsPurged, TargetType: "conversations"})
+		return err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("purge trashed conversations: %w", err)
+	}
+	return out, nil
+}
+
+// Drain deletes queued files nothing refers to any more, for callers that purge without
+// draining. What fails stays queued for the hourly contacts.purge job.
+func (s *Service) Drain(ctx context.Context) error { return s.drain(ctx) }
+
+// purgeBatches deletes what pick returns, one transaction and one audit entry per batch,
+// until pick finds nothing. With drain, queued files are deleted after every batch.
+func (s *Service) purgeBatches(ctx context.Context, pick func(*dbq.Queries) ([]pgtype.UUID, error), entry audit.Entry, drain bool) (int64, error) {
 	var total int64
 	for {
 		var n int64
 		err := db.InTx(ctx, s.pool, func(q *dbq.Queries) error {
-			ids, err := q.RetentionPickConversations(ctx, dbq.RetentionPickConversationsParams{
-				MailboxID: mailbox, Status: status, Before: ts(before), BatchSize: BatchSize,
-			})
+			ids, err := pick(q)
 			if err != nil || len(ids) == 0 {
 				return err
 			}
-			totals, err := q.RetentionTotalsOfConversations(ctx, ids)
-			if err != nil {
-				return err
-			}
-			keys, err := q.DeleteAttachmentsOfConversations(ctx, ids)
-			if err != nil {
-				return err
-			}
-			rawKeys, err := dropRaw(ctx, q, func() ([]pgtype.UUID, error) { return q.RetentionRawIDsOfConversations(ctx, ids) })
-			if err != nil {
-				return err
-			}
-			if n, err = q.RetentionDeleteConversations(ctx, ids); err != nil {
-				return err
-			}
-			if err := contacts.QueueBlobDeletions(ctx, q, append(keys, rawKeys...)); err != nil {
-				return err
-			}
-			return audit.Write(ctx, q, audit.Entry{Action: audit.RetentionPurged, TargetType: "mailbox", TargetID: mailbox.String(),
-				Metadata: map[string]any{"kind": status + "_conversations", "conversations": n, "messages": totals.Messages, "attachments": totals.Attachments}})
+			n, err = deleteConversations(ctx, q, ids, entry)
+			return err
 		})
 		if err != nil {
-			return total, fmt.Errorf("purge %s conversations: %w", status, err)
+			return total, err
 		}
 		if n == 0 {
 			return total, nil
 		}
 		total += n
+		if !drain {
+			continue
+		}
 		if err := s.drain(ctx); err != nil {
 			return total, err
 		}
 	}
+}
+
+// deleteConversations removes conversations for good and writes entry with the counts added
+// to its metadata. Attachment files and raw messages leave through the deletion queue; the raw
+// message rows stay (blanked) so IMAP sync does not import the mail again.
+func deleteConversations(ctx context.Context, q *dbq.Queries, ids []pgtype.UUID, entry audit.Entry) (int64, error) {
+	totals, err := q.RetentionTotalsOfConversations(ctx, ids)
+	if err != nil {
+		return 0, err
+	}
+	keys, err := q.DeleteAttachmentsOfConversations(ctx, ids)
+	if err != nil {
+		return 0, err
+	}
+	rawKeys, err := dropRaw(ctx, q, func() ([]pgtype.UUID, error) { return q.RetentionRawIDsOfConversations(ctx, ids) })
+	if err != nil {
+		return 0, err
+	}
+	n, err := q.RetentionDeleteConversations(ctx, ids)
+	if err != nil {
+		return 0, err
+	}
+	if err := contacts.QueueBlobDeletions(ctx, q, append(keys, rawKeys...)); err != nil {
+		return 0, err
+	}
+	meta := map[string]any{"conversations": n, "messages": totals.Messages, "attachments": totals.Attachments}
+	maps.Copy(meta, entry.Metadata)
+	entry.Metadata = meta
+	return n, audit.Write(ctx, q, entry)
 }
 
 // purgeAttachments deletes attachments of messages received before the cutoff, keeps the
@@ -274,7 +396,8 @@ func (s *Service) drain(ctx context.Context) error {
 
 func (s *Service) recordRun(ctx context.Context, res Result) error {
 	raw, err := json.Marshal(LastRun{At: s.now().UTC(), ClosedConversation: res.ClosedConversations,
-		SpamConversations: res.SpamConversations, Attachments: res.Attachments, AuditEntries: res.AuditEntries})
+		SpamConversations: res.SpamConversations, TrashConversations: res.TrashConversations,
+		Attachments: res.Attachments, AuditEntries: res.AuditEntries})
 	if err != nil {
 		return err
 	}
@@ -293,7 +416,8 @@ func (w *PurgeWorker) Work(ctx context.Context, _ *river.Job[jobs.RetentionPurge
 	res, err := w.svc.Run(ctx)
 	if res != (Result{}) {
 		slog.InfoContext(ctx, "retention purge", "closed_conversations", res.ClosedConversations,
-			"spam_conversations", res.SpamConversations, "attachments", res.Attachments, "audit_entries", res.AuditEntries)
+			"spam_conversations", res.SpamConversations, "trash_conversations", res.TrashConversations,
+			"attachments", res.Attachments, "audit_entries", res.AuditEntries)
 	}
 	if recErr := w.svc.recordRun(ctx, res); recErr != nil {
 		err = errors.Join(err, fmt.Errorf("record retention run: %w", recErr))

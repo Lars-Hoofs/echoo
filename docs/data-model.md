@@ -148,7 +148,11 @@ snoozed_until NULL, last_message_at, last_inbound_at, last_outbound_at,
 sla_policy_id NULL, first_response_due_at, first_responded_at,
 resolution_due_at, resolved_at, sla_state CHECK (none|ok|at_risk|breached),
 message_count int, has_attachments bool, preview text (first 200 chars of latest message text),
-version int (optimistic concurrency), created_at, updated_at, deleted_at`
+version int (optimistic concurrency), created_at, updated_at, deleted_at, deleted_by NULL`
+
+A conversation with `deleted_at` set is in the trash: every list, count, search, rule and SLA query
+filters it out, and it is restored by clearing both columns. Retention (`trash_days`) or a manual
+purge deletes it for good. Mail that threads onto a trashed conversation starts a new one.
 
 Indexes (the list screen is the hot path):
 - `(mailbox_id, status, last_message_at DESC, id DESC) WHERE deleted_at IS NULL`
@@ -158,6 +162,11 @@ Indexes (the list screen is the hot path):
 - `(resolution_due_at) WHERE status IN ('open','waiting')` and same for `first_response_due_at`
 - `(contact_id, last_message_at DESC)`
 - trigram GIN on `subject`
+- `(mailbox_id, deleted_at DESC, id DESC) WHERE deleted_at IS NOT NULL` (the trash)
+
+**blocked_senders** `id, mailbox_id -> mailboxes ON DELETE CASCADE, pattern (lower-case address or
+domain, no @), created_by NULL, created_at`, unique `(mailbox_id, pattern)`. A new conversation whose
+sender's address or exact domain matches starts as spam and queues no rules.
 
 **messages**
 `id, conversation_id, mailbox_id (denormalized for scoping and uniqueness),
@@ -343,11 +352,11 @@ that the trigger accepts only when `current_user` is the table owner. The applic
 default, max attachment size overrides, business name).
 
 The `retention` row of `settings` holds the workspace retention periods,
-`{"global": {"closed_conversation_months": null, "attachment_months": null, "spam_days": null},
-"audit_months": 12}`; `null` keeps that kind of data forever, and a workspace without the row
-uses these defaults. `retention_last_run` holds the counts of the last daily purge.
+`{"global": {"closed_conversation_months": null, "attachment_months": null, "spam_days": null,
+"trash_days": 30}, "audit_months": 12}`; `null` keeps that kind of data forever, and a workspace
+without the row uses these defaults (a stored value without `trash_days` gets 30 too). `retention_last_run` holds the counts of the last daily purge.
 **retention_policies** `mailbox_id PK -> mailboxes ON DELETE CASCADE, closed_conversation_months,
-attachment_months, spam_days (each NULL or in range), updated_by, updated_at`: a mailbox with a
+attachment_months, spam_days, trash_days (each NULL or in range), updated_by, updated_at`: a mailbox with a
 row overrides the workspace periods as a whole (NULL there keeps forever).
 
 The `reports` row of `settings` holds `{"timezone": "Europe/Amsterdam"}`, the timezone that cuts days in reports.
@@ -403,6 +412,7 @@ Goose, SQL files, embedded in the binary. Each migration runs in a transaction u
 | `00016_reports_csat.sql` | Report indexes (`conversations_report_created`, `conversations_report_resolved`, `messages_report_in`, `messages_report_out`), `csat_settings`, `csat_requests`, `csat_responses`, notification kind `csat`. |
 | `00020_campaigns.sql` | `contacts.unsubscribed_at`, `contact_addresses.bounced_at`, `outbound.extra_headers`, `campaigns`, `campaign_recipients`. |
 | `00022_campaign_started_by.sql` | `campaigns.started_by`: recipients are resolved with the visibility of the user who starts a campaign. |
+| `00023_trash_blocklist.sql` | `conversations.deleted_by` and the trash index, `retention_policies.trash_days` (30 for existing rows), `blocked_senders`. |
 | `00019_operations.sql` | `retention_policies`; `audit_log_append_only()` with the purge exception; `audit_log_purge()` (`SECURITY DEFINER`, `EXECUTE` for `echoo_app` only). |
 | `river` | River's migrations, applied by `rivermigrate` in the same `echoo migrate` run. |
 

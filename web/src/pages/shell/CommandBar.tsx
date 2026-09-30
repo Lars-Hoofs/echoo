@@ -20,6 +20,7 @@ import {
   Search,
   Settings,
   Tag,
+  Trash2,
   UserRound,
   Users,
   UsersRound,
@@ -54,6 +55,7 @@ export function useCommandBar(): CommandApi {
 }
 
 const sectionIcons: Record<(typeof sectionPages)[number]['to'], ReactNode> = {
+  '/prullenbak': <Trash2 size={16} aria-hidden />,
   '/campagnes': <Megaphone size={16} aria-hidden />,
   '/rapportage': <ChartColumn size={16} aria-hidden />,
   '/kennisbank': <BookOpen size={16} aria-hidden />,

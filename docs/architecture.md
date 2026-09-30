@@ -57,7 +57,7 @@ Follows the requested layout, with a few additions where a concern needs a singl
 | `internal/mail` | IMAP supervisor and fetch, MIME parsing, outbound MIME building, SMTP send, DSN parsing. |
 | `internal/threading` | Pure functions: given a parsed message and lookup results, pick the conversation. Heavily tested. |
 | `internal/sanitize` | HTML allowlist sanitation, link rewriting, remote-image blocking, phishing heuristics. |
-| `internal/inbox` | Conversations, messages, notes, assignment, status, labels, snooze, drafts, templates. |
+| `internal/inbox` | Conversations, messages, notes, assignment, status, labels, snooze, trash, drafts, templates. |
 | `internal/realtime` | SSE hub, presence and typing state, NOTIFY bridge. |
 | `internal/rules` | Condition/action evaluation. Declarative JSON, no scripting. |
 | `internal/sla` | Business-hours clock, due-time calculation, breach detection. |
@@ -71,7 +71,7 @@ Follows the requested layout, with a few additions where a concern needs a singl
 | `internal/contacts` | The CRM: contact and organization visibility (SQL), custom attribute validation, filters and segments (`ResolveSegment` for campaigns), CSV import job and safe CSV export, merge, GDPR export job and erasure, purge job for exports and import files. |
 | `internal/campaigns` | One-off email campaigns: draft validation, recipient materialization from a segment (visibility of the user who starts it), the paced dispatcher job (`campaigns.tick`), pause/resume/cancel, unsubscribe tokens and the public unsubscribe logic, CSV report. See section 3.7. |
 | `internal/audit` | Append-only audit writer. |
-| `internal/retention` | Retention purges (closed conversations, attachments, spam, audit log) with a dry-run preview, and the expired-upload sweep; batched, audited with counts, files removed through the reference-checked deletion queue. |
+| `internal/retention` | Retention purges (closed conversations, attachments, spam, trash, audit log) and manual purges from the trash, with a dry-run preview, and the expired-upload sweep; batched, audited with counts, files removed through the reference-checked deletion queue. |
 | `internal/ops` | The tools behind `echoo admin rotate-keys` and `echoo admin blobs`: key usage per column, re-encryption, and the database-versus-blob-store comparison. |
 | `internal/metrics` | Prometheus metrics on a separate listener (`ECHOO_METRICS_ADDR`), request instrumentation and the periodic database-derived numbers. |
 | `internal/logging` | slog handler that adds the request ID to every line logged with a request context and scrubs email addresses from values. |

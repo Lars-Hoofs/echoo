@@ -30,12 +30,14 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
+  ShieldBan,
   SlidersHorizontal,
   SquarePen,
   Tag,
   Sun,
   UserCog,
   Timer,
+  Trash2,
   UserCheck,
   Workflow,
   Zap,
@@ -169,6 +171,17 @@ function InboxNav({ onNavigate }: { onNavigate: () => void }) {
           <span>Zonder toewijzing</span>
           <Count n={s?.counts.unassigned} />
         </Link>
+        {hasPermission(me.data, 'conversations.delete') && (
+          <Link
+            to="/prullenbak"
+            onClick={onNavigate}
+            aria-current={path.startsWith('/prullenbak') ? 'page' : undefined}
+            className={navItemClass(path.startsWith('/prullenbak'))}
+          >
+            <Trash2 aria-hidden />
+            <span>Prullenbak</span>
+          </Link>
+        )}
       </Group>
 
       {views.data && views.data.length > 0 && (
@@ -386,6 +399,11 @@ function SettingsNav({ me, onNavigate }: { me: Me; onNavigate: () => void }) {
             {can('labels.manage') && (
               <SettingsLink to="/instellingen/labels" icon={<Tag aria-hidden />} onNavigate={onNavigate}>
                 Labels
+              </SettingsLink>
+            )}
+            {can('conversations.delete') && (
+              <SettingsLink to="/instellingen/geblokkeerde-afzenders" icon={<ShieldBan aria-hidden />} onNavigate={onNavigate}>
+                Geblokkeerde afzenders
               </SettingsLink>
             )}
             {can('settings.manage') && (

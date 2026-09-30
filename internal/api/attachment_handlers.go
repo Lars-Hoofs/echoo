@@ -60,7 +60,9 @@ func (s *Server) downloadAttachment(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	att, err := s.q.GetAttachmentForDownload(ctx, dbq.GetAttachmentForDownloadParams{ID: id, MailboxIds: scope.Read})
+	att, err := s.q.GetAttachmentForDownload(ctx, dbq.GetAttachmentForDownloadParams{
+		ID: id, MailboxIds: scope.Read, TrashMailboxIds: trashScope(sessionFrom(ctx).User, scope),
+	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, r, errNotFound)
 		return
@@ -118,7 +120,7 @@ func (s *Server) allowImages(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	msg, err := s.q.GetMessageForRender(ctx, dbq.GetMessageForRenderParams{ID: msgID, MailboxIds: scope.Read})
+	msg, err := s.q.GetMessageForRender(ctx, dbq.GetMessageForRenderParams{ID: msgID, MailboxIds: scope.Read, TrashMailboxIds: trashScope(user, scope)})
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && msg.ConversationID != convID) {
 		writeError(w, r, errNotFound)
 		return

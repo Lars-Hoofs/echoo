@@ -109,7 +109,7 @@ function recipients(label: string, list: Message['to']): string | undefined {
 
 // Inbound mail is an outlined card on the page, our own replies a filled one on the right.
 // Neither is accent: the accent means the customer waits on us, and a sent reply answers that.
-function EmailMessage({ message }: { message: Message }) {
+function EmailMessage({ conversationId, message, readOnly }: { conversationId: string; message: Message; readOnly: boolean }) {
   const out = message.direction === 'out'
   const sender = out ? (message.author?.name ?? message.from.name) : message.from.name
   const time = message.received_at ?? message.sent_at
@@ -126,7 +126,7 @@ function EmailMessage({ message }: { message: Message }) {
         className={`p-4 ${html ? 'w-full min-[900px]:max-w-[90%]' : 'max-w-[85%] min-[900px]:max-w-[75%]'} ${out ? 'rounded-lg rounded-br-md bg-subtle text-ink' : 'rounded-lg rounded-bl-md border border-line-strong text-ink'}`}
       >
         {html ? (
-          <MailBody message={message} />
+          <MailBody conversationId={conversationId} message={message} readOnly={readOnly} />
         ) : (
           <>
             {!out && message.phishing_warnings.length > 0 && (
@@ -141,7 +141,7 @@ function EmailMessage({ message }: { message: Message }) {
         <div className="t-label mt-3 flex items-center justify-end gap-2">
           {time && <time dateTime={time}>{formatDateTime(time)}</time>}
           {out && message.outbound_status && <DeliveryMark status={message.outbound_status} />}
-          {message.outbound_status !== 'cancelled' && <ForwardButton messageId={message.id} />}
+          {!readOnly && message.outbound_status !== 'cancelled' && <ForwardButton messageId={message.id} />}
         </div>
       </div>
       {out && <DeliveryNotice message={message} />}
@@ -173,7 +173,18 @@ function TimelineLine({ event }: { event: TimelineEvent }) {
   )
 }
 
-export function MessageThread({ messages, events = [] }: { messages: Message[]; events?: TimelineEvent[] }) {
+// readOnly shows a conversation in the trash: nothing in it can be forwarded or changed.
+export function MessageThread({
+  conversationId,
+  messages,
+  events = [],
+  readOnly = false,
+}: {
+  conversationId: string
+  messages: Message[]
+  events?: TimelineEvent[]
+  readOnly?: boolean
+}) {
   return (
     <ol className="flex flex-col gap-6">
       {mergeTimeline(messages, events).map((entry) => {
@@ -186,7 +197,7 @@ export function MessageThread({ messages, events = [] }: { messages: Message[]; 
             {m.body_text}
           </li>
         ) : (
-          <EmailMessage key={m.id} message={m} />
+          <EmailMessage key={m.id} conversationId={conversationId} message={m} readOnly={readOnly} />
         )
       })}
     </ol>

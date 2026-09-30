@@ -88,7 +88,9 @@ func (s *Server) renderMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, err)
 		return
 	}
-	row, err := s.q.GetMessageForRender(ctx, dbq.GetMessageForRenderParams{ID: id, MailboxIds: scope.Read})
+	row, err := s.q.GetMessageForRender(ctx, dbq.GetMessageForRenderParams{
+		ID: id, MailboxIds: scope.Read, TrashMailboxIds: trashScope(sessionFrom(ctx).User, scope),
+	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, r, errNotFound)
 		return

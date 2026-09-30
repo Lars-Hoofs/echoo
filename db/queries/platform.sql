@@ -138,7 +138,7 @@ DELETE FROM webhook_events WHERE occurred_at < $1 AND fanned_out_at IS NOT NULL;
 -- Payload sources, read at delivery time.
 
 -- name: WebhookConversation :one
-SELECT id, number, mailbox_id, status, assignee_user_id, subject FROM conversations WHERE id = $1;
+SELECT id, number, mailbox_id, status, assignee_user_id, subject, (deleted_at IS NOT NULL)::boolean AS deleted FROM conversations WHERE id = $1;
 
 -- name: WebhookMessage :one
 SELECT id, conversation_id, mailbox_id, kind, direction, subject, left(body_text, 2000)::text AS body_text

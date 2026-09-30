@@ -51,8 +51,8 @@ func (q *Queries) IngestCreateContactAddress(ctx context.Context, arg IngestCrea
 }
 
 const ingestCreateConversation = `-- name: IngestCreateConversation :one
-INSERT INTO conversations (mailbox_id, subject, subject_normalized, contact_id, last_message_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO conversations (mailbox_id, subject, subject_normalized, contact_id, last_message_at, status)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id
 `
 
@@ -62,6 +62,7 @@ type IngestCreateConversationParams struct {
 	SubjectNormalized string
 	ContactID         pgtype.UUID
 	LastMessageAt     pgtype.Timestamptz
+	Status            string
 }
 
 func (q *Queries) IngestCreateConversation(ctx context.Context, arg IngestCreateConversationParams) (pgtype.UUID, error) {
@@ -71,6 +72,7 @@ func (q *Queries) IngestCreateConversation(ctx context.Context, arg IngestCreate
 		arg.SubjectNormalized,
 		arg.ContactID,
 		arg.LastMessageAt,
+		arg.Status,
 	)
 	var id pgtype.UUID
 	err := row.Scan(&id)

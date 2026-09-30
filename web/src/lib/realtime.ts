@@ -27,6 +27,8 @@ export function invalidationKeys(ev: RealtimeEvent): QueryKey[] {
     case 'message.created':
     case 'message.updated': {
       const keys: QueryKey[] = [['inbox', 'conversations'], ['inbox', 'summary']]
+      // Moving to the trash and back is announced as an update.
+      if (ev.type === 'conversation.updated') keys.push(['inbox', 'trash'])
       if (ev.conversation_id) keys.push(['inbox', 'conversation', ev.conversation_id])
       return keys
     }

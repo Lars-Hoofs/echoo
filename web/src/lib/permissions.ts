@@ -53,7 +53,11 @@ export const permissionGroups: PermissionGroup[] = [
       { key: 'conversations.read', label: 'Gesprekken zien', description: 'Gesprekken lezen in de mailboxen van de eigen teams.' },
       { key: 'conversations.write', label: 'Beantwoorden', description: 'Antwoorden en notities schrijven, status, prioriteit en labels wijzigen.' },
       { key: 'conversations.assign', label: 'Toewijzen', description: 'Gesprekken aan een collega of team toewijzen.' },
-      { key: 'conversations.delete', label: 'Als spam markeren', description: 'Gesprekken als spam markeren.' },
+      {
+        key: 'conversations.delete',
+        label: 'Spam en verwijderen',
+        description: 'Gesprekken als spam markeren, naar de prullenbak verplaatsen, terugzetten en definitief verwijderen, en afzenders blokkeren.',
+      },
     ],
   },
   {

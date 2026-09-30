@@ -870,6 +870,216 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/Validation" }
 
+  /trash:
+    get:
+      tags: [Conversations]
+      summary: List conversations in the trash
+      description: |
+        Requires `conversations.delete`. Lists the trash of the mailboxes the user may write,
+        most recently deleted first. A conversation in the trash is left out of every other list,
+        count, search, rule and SLA, and `GET /conversations/{id}` answers 404 for it (see
+        `GET /trash/{id}`). The trash
+        is emptied by the retention setting `trash_days` (30 by default).
+      parameters:
+        - { name: mailbox_id, in: query, schema: { type: string, format: uuid } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200":
+          description: One page.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversations, next_cursor]
+                properties:
+                  conversations:
+                    type: array
+                    items: { $ref: "#/components/schemas/TrashedConversation" }
+                  next_cursor: { type: string, nullable: true }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Conversations]
+      summary: Move conversations to the trash
+      description: |
+        Requires `conversations.delete` and write access to each conversation's mailbox. Each
+        conversation is moved in its own transaction and gets a `deleted` event. Codes:
+        `not_found`, `forbidden`, `invalid_id`, `internal`.
+      requestBody: { $ref: "#/components/requestBodies/TrashIDs" }
+      responses:
+        "200": { $ref: "#/components/responses/BulkResults" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Validation" }
+
+  /trash/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    get:
+      tags: [Conversations]
+      summary: View a conversation in the trash
+      description: |
+        Requires `conversations.delete` and write access to the mailbox. The same content as
+        `GET /conversations/{id}`, with `can_write` false, plus the timeline and who deleted it.
+        The render and attachment download routes serve the messages of trashed conversations to
+        the same users. 404 when the conversation is not in the trash.
+      responses:
+        "200":
+          description: The conversation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conversation, messages, contact, csat, events, deleted_at, deleted_by]
+                description: The fields of `GET /conversations/{id}`, plus the ones below.
+                properties:
+                  events:
+                    type: array
+                    description: As in `GET /conversations/{id}/events`.
+                    items: { type: object }
+                  deleted_at: { type: string, format: date-time }
+                  deleted_by: { type: object, nullable: true, properties: { id: { type: string }, name: { type: string } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /trash/restore:
+    post:
+      tags: [Conversations]
+      summary: Take conversations out of the trash
+      description: |
+        Requires `conversations.delete`. Each restored conversation gets a `restored` event. A
+        conversation that is not in the trash of a mailbox the user may write is `not_found`.
+      requestBody: { $ref: "#/components/requestBodies/TrashIDs" }
+      responses:
+        "200": { $ref: "#/components/responses/BulkResults" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Validation" }
+
+  /trash/purge:
+    post:
+      tags: [Conversations]
+      summary: Delete conversations in the trash for good
+      description: |
+        Requires `conversations.delete`. Messages, attachments and stored mail go; this cannot be
+        undone. Audited as `conversations.purged`. Codes: `not_found` (not in the trash of a
+        writable mailbox), `sending` (mail of it is still being sent; try again later),
+        `invalid_id`.
+      requestBody: { $ref: "#/components/requestBodies/TrashIDs" }
+      responses:
+        "200": { $ref: "#/components/responses/BulkResults" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Validation" }
+
+  /trash/empty:
+    post:
+      tags: [Conversations]
+      summary: Empty the trash
+      description: |
+        Requires `conversations.delete`. Deletes for good everything in the trash of the mailboxes
+        the user may write, or of `mailbox_id` only; conversations with mail still being sent stay.
+        Audited as `conversations.purged`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mailbox_id: { type: string, format: uuid }
+      responses:
+        "200":
+          description: How many conversations were deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: integer, format: int64 }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Validation" }
+
+  /blocked-senders:
+    get:
+      tags: [Conversations]
+      summary: List blocked senders
+      description: |
+        Requires `conversations.delete`; lists the entries of the mailboxes the user may write.
+        A new conversation whose sender matches an entry of its mailbox starts as spam, without
+        rules, auto-assignment or auto-reply, and its `created` event has `blocked_sender: true`.
+        Mail that joins an existing conversation is not affected.
+      responses:
+        "200":
+          description: The entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [blocked_senders, mailboxes]
+                properties:
+                  blocked_senders:
+                    type: array
+                    items: { $ref: "#/components/schemas/BlockedSender" }
+                  mailboxes:
+                    type: array
+                    description: The mailboxes the user may add entries to.
+                    items: { type: object, properties: { id: { type: string }, name: { type: string } } }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Conversations]
+      summary: Block a sender address or domain for a mailbox
+      description: |
+        Requires `conversations.delete` and write access to the mailbox (404 otherwise). `pattern`
+        is an address or a domain (`example.com` or `@example.com`); it is stored in lower case
+        without the `@`. A domain matches that exact domain, not its subdomains. Blocking what is
+        already blocked answers 200 with the existing entry. Audited as `blocklist.added`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mailbox_id, pattern]
+              properties:
+                mailbox_id: { type: string, format: uuid }
+                pattern: { type: string, maxLength: 254 }
+      responses:
+        "200":
+          description: Already blocked.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BlockedSender" }
+        "201":
+          description: Blocked.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BlockedSender" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Validation" }
+
+  /blocked-senders/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    delete:
+      tags: [Conversations]
+      summary: Unblock a sender
+      description: Requires `conversations.delete` and write access to the entry's mailbox. Audited as `blocklist.removed`.
+      responses:
+        "204": { description: Unblocked. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /conversations/{id}/events:
     parameters:
       - { $ref: "#/components/parameters/Id" }
@@ -895,7 +1105,7 @@ paths:
                         id: { type: string, format: uuid }
                         type:
                           type: string
-                          enum: [status_changed, resolved, reopened, assigned, unassigned, team_assigned, priority_changed, labeled, unlabeled, snoozed, woke]
+                          enum: [status_changed, resolved, reopened, assigned, unassigned, team_assigned, priority_changed, labeled, unlabeled, snoozed, woke, deleted, restored]
                         created_at: { type: string, format: date-time }
                         actor: { type: object, nullable: true, properties: { id: { type: string }, name: { type: string } } }
                         user:
@@ -5812,6 +6022,38 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    BulkResults:
+      description: One result per conversation, unparsable ids first.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [results]
+            properties:
+              results:
+                type: array
+                items:
+                  type: object
+                  required: [id, ok]
+                  properties:
+                    id: { type: string }
+                    ok: { type: boolean }
+                    code: { type: string }
+                    version: { type: integer }
+  requestBodies:
+    TrashIDs:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ids]
+            properties:
+              ids:
+                type: array
+                minItems: 1
+                maxItems: 500
+                items: { type: string, format: uuid }
   schemas:
     LabelRef:
       type: object
@@ -7122,9 +7364,33 @@ components:
         category_id: { type: string, format: uuid, nullable: true }
         body_html: { type: string, maxLength: 524288 }
         excerpt: { type: string, maxLength: 300, description: "Empty means: the start of the text." }
+    TrashedConversation:
+      type: object
+      required: [id, number, subject, status, preview, last_message_at, message_count, mailbox, contact, deleted_at, deleted_by]
+      properties:
+        id: { type: string, format: uuid }
+        number: { type: integer, format: int64 }
+        subject: { type: string }
+        status: { type: string, enum: [open, waiting, closed, spam] }
+        preview: { type: string }
+        last_message_at: { type: string, format: date-time }
+        message_count: { type: integer }
+        mailbox: { type: object, properties: { id: { type: string }, name: { type: string } } }
+        contact: { type: object, nullable: true, properties: { id: { type: string }, name: { type: string }, email: { type: string } } }
+        deleted_at: { type: string, format: date-time }
+        deleted_by: { type: object, nullable: true, properties: { id: { type: string }, name: { type: string } } }
+    BlockedSender:
+      type: object
+      required: [id, mailbox, pattern, created_by, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        mailbox: { type: object, properties: { id: { type: string }, name: { type: string } } }
+        pattern: { type: string, description: "An address, or a domain without @." }
+        created_by: { type: object, nullable: true, properties: { id: { type: string }, name: { type: string } } }
+        created_at: { type: string, format: date-time }
     RetentionPeriods:
       type: object
-      required: [closed_conversation_months, attachment_months, spam_days]
+      required: [closed_conversation_months, attachment_months, spam_days, trash_days]
       properties:
         closed_conversation_months:
           { type: integer, minimum: 1, maximum: 120, nullable: true, description: "Delete closed conversations, with their messages and files, this many months after their last activity." }
@@ -7132,6 +7398,8 @@ components:
           { type: integer, minimum: 1, maximum: 120, nullable: true, description: "Delete attachments (and the raw copy of their message) this many months after the message arrived; the text stays." }
         spam_days:
           { type: integer, minimum: 1, maximum: 3650, nullable: true, description: "Delete spam conversations this many days after their last activity." }
+        trash_days:
+          { type: integer, minimum: 1, maximum: 3650, nullable: true, description: "Delete conversations this many days after they were moved to the trash. Defaults to 30 for the workspace." }
     RetentionMailbox:
       allOf:
         - type: object
@@ -7157,11 +7425,12 @@ components:
             last_run:
               type: object
               nullable: true
-              required: [at, closed_conversations, spam_conversations, attachments, audit_entries]
+              required: [at, closed_conversations, spam_conversations, trash_conversations, attachments, audit_entries]
               properties:
                 at: { type: string, format: date-time }
                 closed_conversations: { type: integer, format: int64 }
                 spam_conversations: { type: integer, format: int64 }
+                trash_conversations: { type: integer, format: int64 }
                 attachments: { type: integer, format: int64 }
                 audit_entries: { type: integer, format: int64 }
     RetentionImpact:
@@ -7174,10 +7443,11 @@ components:
         attachment_bytes: { type: integer, format: int64 }
     RetentionPreview:
       type: object
-      required: [closed_conversations, spam_conversations, attachments, audit_entries]
+      required: [closed_conversations, spam_conversations, trash_conversations, attachments, audit_entries]
       properties:
         closed_conversations: { $ref: "#/components/schemas/RetentionImpact" }
         spam_conversations: { $ref: "#/components/schemas/RetentionImpact" }
+        trash_conversations: { $ref: "#/components/schemas/RetentionImpact" }
         attachments:
           allOf:
             - { $ref: "#/components/schemas/RetentionImpact" }

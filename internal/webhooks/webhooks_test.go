@@ -378,6 +378,26 @@ func TestPayloadOfDeletedEntityHasOnlyItsID(t *testing.T) {
 	}
 }
 
+func TestPayloadMarksATrashedConversation(t *testing.T) {
+	e := newEnv(t)
+	f := e.fixture()
+	ids := e.record(Event{Type: ConversationUpdated, MailboxID: f.mailbox, ConversationID: f.conversation})
+	ids = append(ids, e.record(Event{Type: ConversationUpdated, MailboxID: f.mailbox, ConversationID: f.conversation})...)
+	if err := e.work(ids[0], 1); err != nil {
+		t.Fatal(err)
+	}
+	e.exec(`UPDATE conversations SET deleted_at = now()`)
+	if err := e.work(ids[1], 1); err != nil {
+		t.Fatal(err)
+	}
+	if body := string(e.recv.requests[0].body); strings.Contains(body, `"deleted"`) {
+		t.Errorf("payload of a live conversation = %s", body)
+	}
+	if body := string(e.recv.requests[1].body); !strings.Contains(body, `"deleted":true`) {
+		t.Errorf("payload of a trashed conversation = %s", body)
+	}
+}
+
 func TestFailureRetriesThenGivesUp(t *testing.T) {
 	e := newEnv(t)
 	e.recv.status = http.StatusInternalServerError

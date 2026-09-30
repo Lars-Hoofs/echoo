@@ -64,6 +64,9 @@ const (
 	RoleUpdated              = "role.updated"
 	RoleDeleted              = "role.deleted"
 	SSOSettingsChanged       = "settings.sso_changed"
+	ConversationsPurged      = "conversations.purged"
+	BlocklistAdded           = "blocklist.added"
+	BlocklistRemoved         = "blocklist.removed"
 )
 
 type Entry struct {

@@ -253,6 +253,9 @@ describe('describeEvent', () => {
     [ev({ type: 'woke', actor: null, data: {} }), 'Uitstel verstreken, het gesprek staat weer in de lijst'],
     [ev({ type: 'woke', data: { manual: true } }), 'Lars hief het uitstel op'],
     [ev({ type: 'resolved', actor: null }), 'Echoo sloot het gesprek'],
+    [ev({ type: 'deleted' }), 'Lars verplaatste het gesprek naar de prullenbak'],
+    [ev({ type: 'restored' }), 'Lars zette het gesprek terug uit de prullenbak'],
+    [ev({ type: 'created', actor: null, data: { reason: 'new_conversation', blocked_sender: true } }), 'De afzender staat op de blokkeerlijst, dus het gesprek begon als spam'],
   ])('describes %#', (event, text) => {
     expect(describeEvent(event, now)).toBe(text)
   })
@@ -273,5 +276,10 @@ describe('mergeTimeline', () => {
   it('leaves out the created event', () => {
     const created: TimelineEvent = { ...event('e0', '2026-09-28T09:00:00Z'), type: 'created' }
     expect(mergeTimeline([message('m1', '2026-09-28T10:00:00Z')], [created]).map((e) => e.kind)).toEqual(['message'])
+  })
+
+  it('keeps the created event of a conversation from a blocked sender', () => {
+    const created: TimelineEvent = { ...event('e0', '2026-09-28T10:00:01Z'), type: 'created', data: { blocked_sender: true } }
+    expect(mergeTimeline([message('m1', '2026-09-28T10:00:00Z')], [created]).map((e) => e.kind)).toEqual(['message', 'event'])
   })
 })

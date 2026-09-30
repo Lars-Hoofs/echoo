@@ -53,7 +53,7 @@ function toInput(f: Form): RetentionInput | undefined {
 function PeriodFields({ value, onChange, disabled }: { value: PeriodText; onChange: (next: PeriodText) => void; disabled?: boolean }) {
   const bad = (t: string) => t.trim() !== '' && !/^[1-9]\d*$/.test(t.trim())
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2">
       <Field label="Gesloten gesprekken verwijderen na (maanden)" help="Leeg: altijd bewaren." error={bad(value.closed) ? 'Vul een heel getal vanaf 1 in.' : undefined}>
         {(p) => <Input {...p} inputMode="numeric" value={value.closed} disabled={disabled} onChange={(e) => onChange({ ...value, closed: e.target.value })} />}
       </Field>
@@ -62,6 +62,13 @@ function PeriodFields({ value, onChange, disabled }: { value: PeriodText; onChan
       </Field>
       <Field label="Spam verwijderen na (dagen)" error={bad(value.spam) ? 'Vul een heel getal vanaf 1 in.' : undefined}>
         {(p) => <Input {...p} inputMode="numeric" value={value.spam} disabled={disabled} onChange={(e) => onChange({ ...value, spam: e.target.value })} />}
+      </Field>
+      <Field
+        label="Prullenbak legen na (dagen)"
+        help="Gerekend vanaf het verwijderen. Leeg: nooit vanzelf legen."
+        error={bad(value.trash) ? 'Vul een heel getal vanaf 1 in.' : undefined}
+      >
+        {(p) => <Input {...p} inputMode="numeric" value={value.trash} disabled={disabled} onChange={(e) => onChange({ ...value, trash: e.target.value })} />}
       </Field>
     </div>
   )
@@ -78,6 +85,7 @@ function PreviewResult({ p }: { p: RetentionPreview }) {
       <ul className="mt-2 list-disc pl-5 text-muted">
         <li>Gesloten gesprekken: {impactText(p.closed_conversations)}</li>
         <li>Spam: {impactText(p.spam_conversations)}</li>
+        <li>Prullenbak: {impactText(p.trash_conversations)}</li>
         <li>
           Losse bijlagen: {p.attachments.attachments} bijlagen ({formatBytes(p.attachments.attachment_bytes)})
         </li>
@@ -211,7 +219,8 @@ function RetentionForm({ settings }: { settings: RetentionSettings }) {
               {settings.last_run && (
                 <p className="text-sm text-muted">
                   Laatste opruiming: {formatDateTime(settings.last_run.at)}. Verwijderd: {settings.last_run.closed_conversations} gesloten gesprekken,{' '}
-                  {settings.last_run.spam_conversations} spamgesprekken, {settings.last_run.attachments} bijlagen, {settings.last_run.audit_entries} auditregels.
+                  {settings.last_run.spam_conversations} spamgesprekken, {settings.last_run.trash_conversations} gesprekken uit de prullenbak,{' '}
+                  {settings.last_run.attachments} bijlagen, {settings.last_run.audit_entries} auditregels.
                 </p>
               )}
             </div>

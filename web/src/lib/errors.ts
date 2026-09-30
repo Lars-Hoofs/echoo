@@ -41,6 +41,7 @@ const messages: Record<string, string> = {
   mfa_state_conflict: 'De status van tweestapsverificatie is intussen gewijzigd. Vernieuw de pagina.',
   campaign_state: 'De status van deze campagne is intussen gewijzigd. De pagina is vernieuwd.',
   test_send_failed: 'De testmail kon niet worden verstuurd.',
+  sending: 'Er wordt nog mail uit dit gesprek verstuurd. Probeer het over een minuut opnieuw.',
 }
 
 export function errorMessage(err: unknown): string {
@@ -174,6 +175,10 @@ const fieldMessages: Record<string, Record<string, string>> = {
     required: 'Kies een mailbox.',
     unknown: 'Deze mailbox bestaat niet of je mag er niet vanuit versturen.',
     disabled: 'Deze mailbox staat uit.',
+  },
+  pattern: {
+    required: 'Vul een e-mailadres of domein in.',
+    invalid: 'Vul een e-mailadres (naam@voorbeeld.nl) of een domein (voorbeeld.nl) in.',
   },
   shortcode: { invalid: 'Gebruik kleine letters, cijfers, - en _ (maximaal 32 tekens).' },
   template_scope: { invalid: 'Kies voor wie dit standaardantwoord is.', unknown: 'Het gekozen team of de mailbox bestaat niet meer.' },

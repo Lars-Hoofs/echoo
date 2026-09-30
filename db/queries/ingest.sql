@@ -59,8 +59,8 @@ SELECT id FROM organizations WHERE domains @> ARRAY[@domain::text] ORDER BY crea
 INSERT INTO organizations (name, domains) VALUES (@domain::text, ARRAY[@domain::text]) RETURNING id;
 
 -- name: IngestCreateConversation :one
-INSERT INTO conversations (mailbox_id, subject, subject_normalized, contact_id, last_message_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO conversations (mailbox_id, subject, subject_normalized, contact_id, last_message_at, status)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id;
 
 -- name: IngestLockConversation :one

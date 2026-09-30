@@ -42,5 +42,6 @@ describe('visibleSectionPages', () => {
     expect(labels(['reports.view'])).toEqual(['Rapportage', 'Kennisbank'])
     expect(labels(['campaigns.manage'])).toEqual(['Campagnes', 'Kennisbank'])
     expect(labels(['kb.manage'])).toEqual(['Kennisbank', 'Kennisbank beheren'])
+    expect(labels(['conversations.delete'])).toEqual(['Prullenbak', 'Kennisbank'])
   })
 })

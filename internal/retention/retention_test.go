@@ -609,3 +609,70 @@ func TestAFileThatCannotBeDeletedIsReportedAndDoesNotBlockOtherMailboxes(t *test
 		t.Error("the stuck file stays queued for the hourly retry")
 	}
 }
+
+func TestTrashIsEmptiedAfterDays(t *testing.T) {
+	e := newEnv(t)
+	box := e.mailbox("Support")
+	old := e.conversation(box, "open", 1)
+	e.message(old, box, 1, "weg", "bijlage weg")
+	e.exec(`UPDATE conversations SET deleted_at = now() - interval '40 days' WHERE id = $1`, old)
+	recent := e.conversation(box, "closed", 400)
+	e.exec(`UPDATE conversations SET deleted_at = now() - interval '5 days' WHERE id = $1`, recent)
+	notTrashed := e.conversation(box, "open", 400)
+
+	set := Settings{Global: Periods{TrashDays: months(30)}, Mailboxes: []MailboxPeriods{}}
+	p, err := e.svc.Preview(context.Background(), set)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.TrashConversations.Conversations != 1 || p.TrashConversations.Attachments != 1 {
+		t.Errorf("trash preview = %+v", p.TrashConversations)
+	}
+	e.setSettings(set)
+	res, err := e.svc.Run(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.TrashConversations != 1 || e.count(`SELECT count(*) FROM conversations WHERE id = $1`, old) != 0 {
+		t.Fatalf("result = %+v", res)
+	}
+	for _, id := range []pgtype.UUID{recent, notTrashed} {
+		if e.count(`SELECT count(*) FROM conversations WHERE id = $1`, id) != 1 {
+			t.Errorf("conversation %s was deleted", id)
+		}
+	}
+	if n := e.count(`SELECT count(*) FROM audit_log WHERE action = $1 AND metadata->>'kind' = 'trash_conversations'`, audit.RetentionPurged); n != 1 {
+		t.Errorf("trash purge audit entries = %d", n)
+	}
+}
+
+func TestTrashDaysDefaultTo30(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	load := func() Settings {
+		t.Helper()
+		s, err := Load(ctx, e.q)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	if s := load(); s.Global.TrashDays == nil || *s.Global.TrashDays != DefaultTrashDays {
+		t.Fatalf("never saved: trash_days = %v", s.Global.TrashDays)
+	}
+	// Settings saved before the trash existed have no trash_days key.
+	err := e.q.UpsertSetting(ctx, dbq.UpsertSettingParams{Key: settingsKey, Value: []byte(`{"global":{"spam_days":14},"audit_months":12}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s := load(); s.Global.TrashDays == nil || *s.Global.TrashDays != DefaultTrashDays || *s.Global.SpamDays != 14 {
+		t.Fatalf("saved without the key: %+v", s.Global)
+	}
+	e.setSettings(Settings{Global: Periods{TrashDays: nil}, Mailboxes: []MailboxPeriods{}})
+	if s := load(); s.Global.TrashDays != nil {
+		t.Fatalf("an explicit null must keep the trash forever, got %d", *s.Global.TrashDays)
+	}
+	if got := Validate(Settings{Global: Periods{TrashDays: months(0)}, Mailboxes: []MailboxPeriods{}}, nil); got["global.trash_days"] == "" {
+		t.Errorf("trash_days 0 accepted: %v", got)
+	}
+}

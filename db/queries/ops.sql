@@ -4,14 +4,14 @@
 SELECT id FROM mailboxes ORDER BY id;
 
 -- name: RetentionListPolicies :many
-SELECT mailbox_id, closed_conversation_months, attachment_months, spam_days FROM retention_policies;
+SELECT mailbox_id, closed_conversation_months, attachment_months, spam_days, trash_days FROM retention_policies;
 
 -- name: RetentionDeletePolicies :exec
 DELETE FROM retention_policies;
 
 -- name: RetentionInsertPolicy :exec
-INSERT INTO retention_policies (mailbox_id, closed_conversation_months, attachment_months, spam_days, updated_by)
-VALUES (@mailbox_id, sqlc.narg(closed_conversation_months), sqlc.narg(attachment_months), sqlc.narg(spam_days), @updated_by);
+INSERT INTO retention_policies (mailbox_id, closed_conversation_months, attachment_months, spam_days, trash_days, updated_by)
+VALUES (@mailbox_id, sqlc.narg(closed_conversation_months), sqlc.narg(attachment_months), sqlc.narg(spam_days), sqlc.narg(trash_days), @updated_by);
 
 -- name: RetentionPickConversations :many
 -- Conversations of one mailbox in a status whose last activity (last message or, when later,

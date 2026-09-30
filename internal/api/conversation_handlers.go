@@ -487,12 +487,21 @@ func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, errNotFound)
 		return
 	}
-	conv := rows[0]
+	out, err := s.conversationDetail(ctx, rows[0], scope)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
 
+// conversationDetail builds the full view of one conversation the caller may read: messages,
+// attachments, labels, contact and rating.
+func (s *Server) conversationDetail(ctx context.Context, conv dbq.ListConversationsByIDRow, scope policy.Scope) (conversationDetailResponse, error) {
+	id := conv.ID
 	msgRows, err := s.q.ListConversationMessages(ctx, id)
 	if err != nil {
-		writeError(w, r, fmt.Errorf("load messages: %w", err))
-		return
+		return conversationDetailResponse{}, fmt.Errorf("load messages: %w", err)
 	}
 	messageIDs := make([]pgtype.UUID, len(msgRows))
 	for i, m := range msgRows {
@@ -500,8 +509,7 @@ func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
 	}
 	attRows, err := s.q.ListMessageAttachments(ctx, messageIDs)
 	if err != nil {
-		writeError(w, r, fmt.Errorf("load attachments: %w", err))
-		return
+		return conversationDetailResponse{}, fmt.Errorf("load attachments: %w", err)
 	}
 	attachments := map[pgtype.UUID][]attachmentJSON{}
 	for _, a := range attRows {
@@ -514,20 +522,17 @@ func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
 
 	renderInfo, err := s.messageRenderInfos(ctx, conv)
 	if err != nil {
-		writeError(w, r, err)
-		return
+		return conversationDetailResponse{}, err
 	}
 	messages := make([]messageJSON, 0, len(msgRows))
 	for _, m := range msgRows {
 		to, err := decodeAddresses(m.ToAddrs)
 		if err != nil {
-			writeError(w, r, fmt.Errorf("decode to of message %s: %w", uuidStr(m.ID), err))
-			return
+			return conversationDetailResponse{}, fmt.Errorf("decode to of message %s: %w", uuidStr(m.ID), err)
 		}
 		cc, err := decodeAddresses(m.CcAddrs)
 		if err != nil {
-			writeError(w, r, fmt.Errorf("decode cc of message %s: %w", uuidStr(m.ID), err))
-			return
+			return conversationDetailResponse{}, fmt.Errorf("decode cc of message %s: %w", uuidStr(m.ID), err)
 		}
 		msg := messageJSON{
 			ID: uuidStr(m.ID), Kind: m.Kind, From: mail.Address{Name: m.FromName, Address: m.FromAddr},
@@ -571,23 +576,20 @@ func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
 	}
 	labels, err := s.conversationLabels(ctx, []pgtype.UUID{id})
 	if err != nil {
-		writeError(w, r, err)
-		return
+		return conversationDetailResponse{}, err
 	}
 	if l := labels[id]; l != nil {
 		out.Conversation.Labels = l
 	}
 	one := []conversationJSON{out.Conversation.conversationJSON}
 	if err := s.attachUnread(ctx, sessionFrom(ctx).User.ID, one); err != nil {
-		writeError(w, r, err)
-		return
+		return conversationDetailResponse{}, err
 	}
 	out.Conversation.Unread = one[0].Unread
 	if conv.ContactID.Valid {
 		c, err := s.q.GetConversationContact(ctx, dbq.GetConversationContactParams{ID: conv.ContactID, MailboxIds: scope.Read})
 		if err != nil {
-			writeError(w, r, fmt.Errorf("load contact: %w", err))
-			return
+			return conversationDetailResponse{}, fmt.Errorf("load contact: %w", err)
 		}
 		out.Contact = &contactDetailJSON{
 			contactRefJSON:    contactRefJSON{ID: uuidStr(c.ID), Name: c.Name, Email: c.Email},
@@ -598,8 +600,7 @@ func (s *Server) getConversation(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if out.CSAT, err = s.conversationRating(ctx, id, scope.Read); err != nil {
-		writeError(w, r, err)
-		return
+		return out, err
 	}
-	writeJSON(w, http.StatusOK, out)
+	return out, nil
 }

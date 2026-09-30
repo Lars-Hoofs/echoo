@@ -34,13 +34,15 @@ SELECT
     attachments.blob_key, attachments.scan_status
 FROM attachments
 JOIN messages ON messages.id = attachments.message_id AND messages.deleted_at IS NULL
-JOIN conversations ON conversations.id = messages.conversation_id AND conversations.deleted_at IS NULL
-WHERE attachments.id = $1 AND conversations.mailbox_id = ANY($2::uuid[])
+JOIN conversations ON conversations.id = messages.conversation_id
+    AND (conversations.deleted_at IS NULL OR conversations.mailbox_id = ANY($1::uuid[]))
+WHERE attachments.id = $2 AND conversations.mailbox_id = ANY($3::uuid[])
 `
 
 type GetAttachmentForDownloadParams struct {
-	ID         pgtype.UUID
-	MailboxIds []pgtype.UUID
+	TrashMailboxIds []pgtype.UUID
+	ID              pgtype.UUID
+	MailboxIds      []pgtype.UUID
 }
 
 type GetAttachmentForDownloadRow struct {
@@ -53,7 +55,7 @@ type GetAttachmentForDownloadRow struct {
 }
 
 func (q *Queries) GetAttachmentForDownload(ctx context.Context, arg GetAttachmentForDownloadParams) (GetAttachmentForDownloadRow, error) {
-	row := q.db.QueryRow(ctx, getAttachmentForDownload, arg.ID, arg.MailboxIds)
+	row := q.db.QueryRow(ctx, getAttachmentForDownload, arg.TrashMailboxIds, arg.ID, arg.MailboxIds)
 	var i GetAttachmentForDownloadRow
 	err := row.Scan(
 		&i.ID,
@@ -135,15 +137,17 @@ SELECT
     messages.from_addr, messages.from_name, messages.reply_to, messages.auth_results,
     messages.body_html, messages.body_text
 FROM messages
-JOIN conversations ON conversations.id = messages.conversation_id AND conversations.deleted_at IS NULL
-WHERE messages.id = $1
+JOIN conversations ON conversations.id = messages.conversation_id
+    AND (conversations.deleted_at IS NULL OR conversations.mailbox_id = ANY($1::uuid[]))
+WHERE messages.id = $2
     AND messages.deleted_at IS NULL
-    AND conversations.mailbox_id = ANY($2::uuid[])
+    AND conversations.mailbox_id = ANY($3::uuid[])
 `
 
 type GetMessageForRenderParams struct {
-	ID         pgtype.UUID
-	MailboxIds []pgtype.UUID
+	TrashMailboxIds []pgtype.UUID
+	ID              pgtype.UUID
+	MailboxIds      []pgtype.UUID
 }
 
 type GetMessageForRenderRow struct {
@@ -162,8 +166,10 @@ type GetMessageForRenderRow struct {
 
 // Queries behind the mail rendering routes. Everything that takes a message or attachment id
 // for a user also takes the readable mailbox ids, so out-of-scope rows are never selected.
+// Trashed conversations are only reached in trash_mailbox_ids: the mailboxes whose trash the
+// user may see.
 func (q *Queries) GetMessageForRender(ctx context.Context, arg GetMessageForRenderParams) (GetMessageForRenderRow, error) {
-	row := q.db.QueryRow(ctx, getMessageForRender, arg.ID, arg.MailboxIds)
+	row := q.db.QueryRow(ctx, getMessageForRender, arg.TrashMailboxIds, arg.ID, arg.MailboxIds)
 	var i GetMessageForRenderRow
 	err := row.Scan(
 		&i.ID,

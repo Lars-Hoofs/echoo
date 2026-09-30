@@ -119,6 +119,24 @@ const conversationRoute = createRoute({
   component: lazyRouteComponent(() => import('./pages/inbox/ConversationPane'), 'ConversationPane'),
 })
 
+const trashRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/prullenbak',
+  beforeLoad: ({ context }) => {
+    if (!hasPermission(context.me, 'conversations.delete')) throw redirect({ to: '/inbox/$view', params: { view: 'alle' } })
+  },
+  component: lazyRouteComponent(() => import('./pages/inbox/TrashPage'), 'TrashPage'),
+})
+
+const trashConversationRoute = createRoute({
+  getParentRoute: () => readyRoute,
+  path: '/prullenbak/$conversationId',
+  beforeLoad: ({ context }) => {
+    if (!hasPermission(context.me, 'conversations.delete')) throw redirect({ to: '/inbox/$view', params: { view: 'alle' } })
+  },
+  component: lazyRouteComponent(() => import('./pages/inbox/TrashConversationPage'), 'TrashConversationPage'),
+})
+
 const searchRoute = createRoute({
   getParentRoute: () => readyRoute,
   path: '/zoeken',
@@ -231,6 +249,12 @@ const labelsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/instellingen/labels',
   component: lazyRouteComponent(() => import('./pages/settings/Labels'), 'LabelsPage'),
+})
+
+const blockedSendersRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/instellingen/geblokkeerde-afzenders',
+  component: lazyRouteComponent(() => import('./pages/settings/BlockedSenders'), 'BlockedSendersPage'),
 })
 
 const workspaceRoute = createRoute({
@@ -391,6 +415,8 @@ const routeTree = rootRoute.addChildren([
     readyRoute.addChildren([
       indexRoute,
       inboxRoute.addChildren([conversationRoute]),
+      trashRoute,
+      trashConversationRoute,
       contactsRoute,
       contactRoute,
       organizationsRoute,
@@ -412,7 +438,7 @@ const routeTree = rootRoute.addChildren([
         templatesRoute,
         macrosRoute,
         apiTokensRoute,
-        adminRoute.addChildren([rulesRoute, slaRoute, assignmentRoute, mailboxesRoute, usersRoute, rolesRoute, ssoRoute, teamsRoute, labelsRoute, customFieldsRoute, workspaceRoute, allTokensRoute, webhooksRoute, jobsRoute, retentionRoute, auditRoute]),
+        adminRoute.addChildren([rulesRoute, slaRoute, assignmentRoute, mailboxesRoute, usersRoute, rolesRoute, ssoRoute, teamsRoute, labelsRoute, blockedSendersRoute, customFieldsRoute, workspaceRoute, allTokensRoute, webhooksRoute, jobsRoute, retentionRoute, auditRoute]),
       ]),
     ]),
   ]),

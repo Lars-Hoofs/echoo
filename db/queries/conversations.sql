@@ -107,7 +107,8 @@ LEFT JOIN users ON users.id = conversations.assignee_user_id
 LEFT JOIN teams ON teams.id = conversations.assignee_team_id
 WHERE conversations.id = ANY(@ids::uuid[])
     AND conversations.mailbox_id = ANY(@mailbox_ids::uuid[])
-    AND conversations.deleted_at IS NULL
+    -- Only the trash view asks for trashed conversations.
+    AND (conversations.deleted_at IS NOT NULL) = @trashed::boolean
 ORDER BY conversations.last_message_at DESC, conversations.id DESC;
 
 -- name: ListConversationMessages :many

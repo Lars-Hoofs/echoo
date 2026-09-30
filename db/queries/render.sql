@@ -1,5 +1,7 @@
 -- Queries behind the mail rendering routes. Everything that takes a message or attachment id
 -- for a user also takes the readable mailbox ids, so out-of-scope rows are never selected.
+-- Trashed conversations are only reached in trash_mailbox_ids: the mailboxes whose trash the
+-- user may see.
 
 -- name: GetMessageForRender :one
 SELECT
@@ -7,7 +9,8 @@ SELECT
     messages.from_addr, messages.from_name, messages.reply_to, messages.auth_results,
     messages.body_html, messages.body_text
 FROM messages
-JOIN conversations ON conversations.id = messages.conversation_id AND conversations.deleted_at IS NULL
+JOIN conversations ON conversations.id = messages.conversation_id
+    AND (conversations.deleted_at IS NULL OR conversations.mailbox_id = ANY(@trash_mailbox_ids::uuid[]))
 WHERE messages.id = @id
     AND messages.deleted_at IS NULL
     AND conversations.mailbox_id = ANY(@mailbox_ids::uuid[]);
@@ -37,7 +40,8 @@ SELECT
     attachments.blob_key, attachments.scan_status
 FROM attachments
 JOIN messages ON messages.id = attachments.message_id AND messages.deleted_at IS NULL
-JOIN conversations ON conversations.id = messages.conversation_id AND conversations.deleted_at IS NULL
+JOIN conversations ON conversations.id = messages.conversation_id
+    AND (conversations.deleted_at IS NULL OR conversations.mailbox_id = ANY(@trash_mailbox_ids::uuid[]))
 WHERE attachments.id = @id AND conversations.mailbox_id = ANY(@mailbox_ids::uuid[]);
 
 -- name: ListSenderImagePatterns :many

@@ -340,6 +340,7 @@ of data forever.
 | Closed conversations | per workspace or per mailbox, months | conversations whose last activity, or resolution if later, is older; with messages, notes, events, attachments and raw copies. Conversations with mail still waiting to be sent, or locked by an agent at that moment, are skipped until the next run. |
 | Attachments only | per workspace or per mailbox, months | attachment files of older messages, and the raw copy of those messages (it contains the files). The message text stays; the search index keeps working. |
 | Spam | per workspace or per mailbox, days | spam conversations, like closed ones |
+| Trash | per workspace or per mailbox, days (default 30) | conversations that went into the trash that long ago, like closed ones. Agents with `conversations.delete` can also delete from the trash by hand. |
 | Audit log | workspace, months (default 12, minimum 3) | entries older than that, through a database function that logs its own count first |
 | Webhook delivery log | fixed 14 days | |
 | Rule runs | fixed 30 days | |

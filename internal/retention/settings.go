@@ -23,6 +23,8 @@ const (
 
 	// DefaultAuditMonths is how long the audit log is kept until an admin says otherwise.
 	DefaultAuditMonths = 12
+	// DefaultTrashDays is how long the trash keeps conversations until an admin says otherwise.
+	DefaultTrashDays = 30
 	// MinAuditMonths keeps the API above the 60-day floor that audit_log_purge enforces.
 	MinAuditMonths = 3
 	maxMonths      = 120
@@ -34,6 +36,7 @@ type Periods struct {
 	ClosedConversationMonths *int `json:"closed_conversation_months"`
 	AttachmentMonths         *int `json:"attachment_months"`
 	SpamDays                 *int `json:"spam_days"`
+	TrashDays                *int `json:"trash_days"`
 }
 
 // MailboxPeriods overrides the workspace periods for one mailbox, as a whole: a nil period
@@ -56,6 +59,7 @@ type LastRun struct {
 	At                 time.Time `json:"at"`
 	ClosedConversation int64     `json:"closed_conversations"`
 	SpamConversations  int64     `json:"spam_conversations"`
+	TrashConversations int64     `json:"trash_conversations"`
 	Attachments        int64     `json:"attachments"`
 	AuditEntries       int64     `json:"audit_entries"`
 }
@@ -69,14 +73,16 @@ type stored struct {
 
 // Load returns the stored settings, or the defaults for a workspace that never saved any.
 func Load(ctx context.Context, q *dbq.Queries) (Settings, error) {
-	s := Settings{AuditMonths: new(DefaultAuditMonths), Mailboxes: []MailboxPeriods{}}
+	s := Settings{Global: Periods{TrashDays: new(DefaultTrashDays)}, AuditMonths: new(DefaultAuditMonths), Mailboxes: []MailboxPeriods{}}
 	raw, err := q.GetSetting(ctx, settingsKey)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 	case err != nil:
 		return Settings{}, fmt.Errorf("load retention settings: %w", err)
 	default:
-		var st stored
+		// Settings saved before the trash existed have no trash_days key and get the default;
+		// an explicit null keeps the trash forever.
+		st := stored{Global: Periods{TrashDays: new(DefaultTrashDays)}}
 		if err := json.Unmarshal(raw, &st); err != nil {
 			return Settings{}, fmt.Errorf("decode retention settings: %w", err)
 		}
@@ -91,6 +97,7 @@ func Load(ctx context.Context, q *dbq.Queries) (Settings, error) {
 			ClosedConversationMonths: intPtr(r.ClosedConversationMonths),
 			AttachmentMonths:         intPtr(r.AttachmentMonths),
 			SpamDays:                 intPtr(r.SpamDays),
+			TrashDays:                intPtr(r.TrashDays),
 		}})
 	}
 	slices.SortFunc(s.Mailboxes, func(a, b MailboxPeriods) int { return slices.Compare(a.MailboxID.Bytes[:], b.MailboxID.Bytes[:]) })
@@ -132,6 +139,7 @@ func Save(ctx context.Context, q *dbq.Queries, s Settings, actor pgtype.UUID) er
 			ClosedConversationMonths: int4(m.ClosedConversationMonths),
 			AttachmentMonths:         int4(m.AttachmentMonths),
 			SpamDays:                 int4(m.SpamDays),
+			TrashDays:                int4(m.TrashDays),
 			UpdatedBy:                actor,
 		})
 		if err != nil {
@@ -173,6 +181,7 @@ func checkPeriods(problems map[string]string, prefix string, p Periods) {
 	inRange(p.ClosedConversationMonths, "closed_conversation_months", maxMonths)
 	inRange(p.AttachmentMonths, "attachment_months", maxMonths)
 	inRange(p.SpamDays, "spam_days", maxSpamDays)
+	inRange(p.TrashDays, "trash_days", maxSpamDays)
 }
 
 // effective returns the periods that apply to a mailbox.

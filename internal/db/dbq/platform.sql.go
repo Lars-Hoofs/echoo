@@ -834,7 +834,7 @@ func (q *Queries) WebhookContact(ctx context.Context, id pgtype.UUID) (WebhookCo
 
 const webhookConversation = `-- name: WebhookConversation :one
 
-SELECT id, number, mailbox_id, status, assignee_user_id, subject FROM conversations WHERE id = $1
+SELECT id, number, mailbox_id, status, assignee_user_id, subject, (deleted_at IS NOT NULL)::boolean AS deleted FROM conversations WHERE id = $1
 `
 
 type WebhookConversationRow struct {
@@ -844,6 +844,7 @@ type WebhookConversationRow struct {
 	Status         string
 	AssigneeUserID pgtype.UUID
 	Subject        string
+	Deleted        bool
 }
 
 // Payload sources, read at delivery time.
@@ -857,6 +858,7 @@ func (q *Queries) WebhookConversation(ctx context.Context, id pgtype.UUID) (Webh
 		&i.Status,
 		&i.AssigneeUserID,
 		&i.Subject,
+		&i.Deleted,
 	)
 	return i, err
 }

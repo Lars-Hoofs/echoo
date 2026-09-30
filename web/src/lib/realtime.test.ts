@@ -4,10 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { backoffDelay, invalidationKeys, isRealtimeConnected, parseEvent, RealtimeClient, type SourceLike } from './realtime'
 
 describe('invalidationKeys', () => {
-  it.each(['conversation.updated', 'message.created', 'message.updated'])('%s refreshes that conversation, the lists and the summary', (type) => {
+  it.each(['message.created', 'message.updated'])('%s refreshes that conversation, the lists and the summary', (type) => {
     expect(invalidationKeys({ type, conversation_id: 'c1' })).toEqual([
       ['inbox', 'conversations'],
       ['inbox', 'summary'],
+      ['inbox', 'conversation', 'c1'],
+    ])
+  })
+
+  it('conversation.updated also refreshes the trash', () => {
+    expect(invalidationKeys({ type: 'conversation.updated', conversation_id: 'c1' })).toEqual([
+      ['inbox', 'conversations'],
+      ['inbox', 'summary'],
+      ['inbox', 'trash'],
       ['inbox', 'conversation', 'c1'],
     ])
   })
@@ -140,6 +149,7 @@ describe('RealtimeClient', () => {
       ['inbox', 'conversations'],
       ['inbox', 'summary'],
       ['inbox', 'conversation', 'c1'],
+      ['inbox', 'trash'],
       ['inbox', 'conversation', 'c2'],
     ])
   })

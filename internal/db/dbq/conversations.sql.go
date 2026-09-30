@@ -417,13 +417,15 @@ LEFT JOIN users ON users.id = conversations.assignee_user_id
 LEFT JOIN teams ON teams.id = conversations.assignee_team_id
 WHERE conversations.id = ANY($1::uuid[])
     AND conversations.mailbox_id = ANY($2::uuid[])
-    AND conversations.deleted_at IS NULL
+    -- Only the trash view asks for trashed conversations.
+    AND (conversations.deleted_at IS NOT NULL) = $3::boolean
 ORDER BY conversations.last_message_at DESC, conversations.id DESC
 `
 
 type ListConversationsByIDParams struct {
 	Ids        []pgtype.UUID
 	MailboxIds []pgtype.UUID
+	Trashed    bool
 }
 
 type ListConversationsByIDRow struct {
@@ -459,7 +461,7 @@ type ListConversationsByIDRow struct {
 }
 
 func (q *Queries) ListConversationsByID(ctx context.Context, arg ListConversationsByIDParams) ([]ListConversationsByIDRow, error) {
-	rows, err := q.db.Query(ctx, listConversationsByID, arg.Ids, arg.MailboxIds)
+	rows, err := q.db.Query(ctx, listConversationsByID, arg.Ids, arg.MailboxIds, arg.Trashed)
 	if err != nil {
 		return nil, err
 	}

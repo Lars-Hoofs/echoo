@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { ImageOff, TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
@@ -8,8 +7,6 @@ import { api } from '../../lib/api'
 import { errorMessage } from '../../lib/errors'
 import type { Message } from '../../lib/inbox'
 import { frameHeight, type PhishingWarning, warningText } from '../../lib/render'
-
-const route = getRouteApi('/auth/ready/inbox/$view/$conversationId')
 
 type ImageScope = 'once' | 'sender' | 'domain'
 
@@ -35,8 +32,8 @@ export function PhishingNotice({ warnings }: { warnings: PhishingWarning[] }) {
  * shown in an iframe with an opaque origin (sandbox without allow-same-origin), so even markup
  * that slipped through cannot reach the app, its cookies or its API.
  */
-export function MailBody({ message }: { message: Message }) {
-  const { conversationId } = route.useParams()
+// readOnly (a conversation in the trash) leaves out the buttons that change the image allowlist.
+export function MailBody({ conversationId, message, readOnly = false }: { conversationId: string; message: Message; readOnly?: boolean }) {
   const queryClient = useQueryClient()
   const frame = useRef<HTMLIFrameElement>(null)
   const [height, setHeight] = useState(160)
@@ -83,12 +80,16 @@ export function MailBody({ message }: { message: Message }) {
             <Button size="sm" busy={allow.isPending && allow.variables === 'once'} disabled={allow.isPending} onClick={() => allow.mutate('once')}>
               Eenmalig tonen
             </Button>
-            <Button size="sm" busy={allow.isPending && allow.variables === 'sender'} disabled={allow.isPending} onClick={() => allow.mutate('sender')}>
-              Altijd tonen van dit adres
-            </Button>
-            <Button size="sm" busy={allow.isPending && allow.variables === 'domain'} disabled={allow.isPending} onClick={() => allow.mutate('domain')}>
-              Altijd tonen van dit domein
-            </Button>
+            {!readOnly && (
+              <>
+                <Button size="sm" busy={allow.isPending && allow.variables === 'sender'} disabled={allow.isPending} onClick={() => allow.mutate('sender')}>
+                  Altijd tonen van dit adres
+                </Button>
+                <Button size="sm" busy={allow.isPending && allow.variables === 'domain'} disabled={allow.isPending} onClick={() => allow.mutate('domain')}>
+                  Altijd tonen van dit domein
+                </Button>
+              </>
+            )}
           </span>
         </div>
       )}

@@ -67,6 +67,14 @@ type AutomationReply struct {
 	SentAt  pgtype.Timestamptz
 }
 
+type BlockedSender struct {
+	ID        pgtype.UUID
+	MailboxID pgtype.UUID
+	Pattern   string
+	CreatedBy pgtype.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
 type BusinessHour struct {
 	ID        pgtype.UUID
 	Name      string
@@ -203,6 +211,7 @@ type Conversation struct {
 	SlaResumedAt       pgtype.Timestamptz
 	SlaFinalizedAt     pgtype.Timestamptz
 	CustomAttributes   []byte
+	DeletedBy          pgtype.UUID
 }
 
 type ConversationEvent struct {
@@ -581,6 +590,7 @@ type RetentionPolicy struct {
 	SpamDays                 pgtype.Int4
 	UpdatedBy                pgtype.UUID
 	UpdatedAt                pgtype.Timestamptz
+	TrashDays                pgtype.Int4
 }
 
 type Rule struct {

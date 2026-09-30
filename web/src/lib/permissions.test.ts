@@ -241,7 +241,9 @@ describe('settings pages', () => {
 
   it('shows the workspace section only when a page is open', () => {
     expect(hasWorkspaceSettings(lead)).toBe(true)
-    expect(hasWorkspaceSettings(me(user('a', 'agent'), agentRights))).toBe(false)
+    // Agents may mark spam, so they manage the blocked senders of their mailboxes.
+    expect(hasWorkspaceSettings(me(user('a', 'agent'), agentRights))).toBe(true)
+    expect(hasWorkspaceSettings(me(user('a', 'agent'), ['conversations.read', 'conversations.write']))).toBe(false)
     expect(hasWorkspaceSettings(undefined)).toBe(false)
   })
 

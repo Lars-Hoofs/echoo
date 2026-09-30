@@ -159,7 +159,7 @@ export function ConversationPane() {
             {c.can_write && hasPermission(me.data, 'conversations.write') && (
               <HeaderActions
                 conversation={c}
-                onMarkedUnread={() => void navigate({ to: '/inbox/$view', params: { view }, search: (prev: InboxSearch) => prev })}
+                onLeave={() => void navigate({ to: '/inbox/$view', params: { view }, search: (prev: InboxSearch) => prev })}
               />
             )}
           </div>
@@ -185,7 +185,7 @@ export function ConversationPane() {
                 )}
               </p>
             )}
-            <MessageThread messages={data.messages} events={events.data ?? []} />
+            <MessageThread conversationId={c.id} messages={data.messages} events={events.data ?? []} />
           </div>
         </div>
         <p role="status" aria-live="polite" className="t-label h-5 shrink-0 truncate px-4 min-[900px]:px-6">

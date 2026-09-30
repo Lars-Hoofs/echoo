@@ -38,6 +38,8 @@ type conversationData struct {
 	Status         string  `json:"status,omitempty"`
 	AssigneeUserID *string `json:"assignee_user_id,omitempty"`
 	Subject        *string `json:"subject,omitempty"`
+	// Deleted is set while the conversation is in the trash.
+	Deleted bool `json:"deleted,omitempty"`
 }
 
 type messageData struct {
@@ -99,7 +101,7 @@ func conversationPayload(ctx context.Context, q *dbq.Queries, id pgtype.UUID, in
 	if err != nil {
 		return nil, fmt.Errorf("load conversation for webhook: %w", err)
 	}
-	c := &conversationData{ID: row.ID.String(), Number: row.Number, MailboxID: row.MailboxID.String(), Status: row.Status}
+	c := &conversationData{ID: row.ID.String(), Number: row.Number, MailboxID: row.MailboxID.String(), Status: row.Status, Deleted: row.Deleted}
 	if row.AssigneeUserID.Valid {
 		a := row.AssigneeUserID.String()
 		c.AssigneeUserID = &a

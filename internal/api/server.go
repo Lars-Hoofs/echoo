@@ -225,6 +225,8 @@ func (s *Server) Handler() *chi.Mux {
 				s.contactRoutes(r)
 				s.reportRoutes(r)
 				s.kbRoutes(r)
+				s.trashRoutes(r)
+				s.blocklistRoutes(r)
 
 				r.Group(func(r chi.Router) {
 					r.Use(requirePermission)

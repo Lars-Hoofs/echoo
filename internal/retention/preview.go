@@ -22,6 +22,7 @@ type Impact struct {
 type Preview struct {
 	ClosedConversations Impact `json:"closed_conversations"`
 	SpamConversations   Impact `json:"spam_conversations"`
+	TrashConversations  Impact `json:"trash_conversations"`
 	// Attachments are files removed while their message stays. A file that is also inside a
 	// conversation above is counted in both places.
 	Attachments  Impact `json:"attachments"`
@@ -47,6 +48,13 @@ func (s *Service) Preview(ctx context.Context, set Settings) (Preview, error) {
 				return out, err
 			}
 		}
+		if p.TrashDays != nil {
+			row, err := s.q.TrashPreviewExpired(ctx, dbq.TrashPreviewExpiredParams{MailboxID: mb, Before: ts(s.days(*p.TrashDays))})
+			if err != nil {
+				return out, fmt.Errorf("preview trash: %w", err)
+			}
+			out.TrashConversations.add(Impact(row))
+		}
 		if p.AttachmentMonths != nil {
 			row, err := s.q.RetentionPreviewAttachments(ctx, dbq.RetentionPreviewAttachmentsParams{MailboxID: mb, Before: ts(s.months(*p.AttachmentMonths))})
 			if err != nil {
@@ -71,9 +79,13 @@ func (s *Service) previewConversations(ctx context.Context, into *Impact, mailbo
 	if err != nil {
 		return fmt.Errorf("preview %s conversations: %w", status, err)
 	}
-	into.Conversations += row.Conversations
-	into.Messages += row.Messages
-	into.Attachments += row.Attachments
-	into.AttachmentBytes += row.AttachmentBytes
+	into.add(Impact(row))
 	return nil
+}
+
+func (i *Impact) add(o Impact) {
+	i.Conversations += o.Conversations
+	i.Messages += o.Messages
+	i.Attachments += o.Attachments
+	i.AttachmentBytes += o.AttachmentBytes
 }

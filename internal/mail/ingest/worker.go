@@ -271,8 +271,11 @@ func (w *Worker) ingest(ctx context.Context, tx pgx.Tx, q *dbq.Queries, raw dbq.
 	if err := w.recordEvents(ctx, q, raw.MailboxID, conv, reopen, wake); err != nil {
 		return err
 	}
-	if err := w.queueRules(ctx, tx, conv, msgID); err != nil {
-		return err
+	// Rules and auto-assignment do not run for mail from a blocked sender.
+	if !conv.blocked {
+		if err := w.queueRules(ctx, tx, conv, msgID); err != nil {
+			return err
+		}
 	}
 	if !p.AutoSubmitted {
 		if err := notifyAssignee(ctx, q, conv.id, msgID); err != nil {
@@ -307,11 +310,13 @@ func notifyAssignee(ctx context.Context, q *dbq.Queries, conv, msg pgtype.UUID) 
 }
 
 type conversation struct {
-	id        pgtype.UUID
-	contact   pgtype.UUID
-	status    string
-	snoozed   bool
-	isNew     bool
+	id      pgtype.UUID
+	contact pgtype.UUID
+	status  string
+	snoozed bool
+	isNew   bool
+	// blocked is set on a new conversation whose sender is on the mailbox's blocklist.
+	blocked   bool
 	reason    threading.Reason
 	refHashes [][]byte
 }
@@ -347,14 +352,24 @@ func (w *Worker) resolveConversation(ctx context.Context, q *dbq.Queries, raw db
 		conv.reason = threading.ReasonNewConversation
 	}
 
+	// Only new conversations are affected, so a blocked address that is part of an ongoing
+	// conversation does not move it to spam.
+	blocked, err := q.IngestSenderBlocked(ctx, dbq.IngestSenderBlockedParams{MailboxID: raw.MailboxID, Address: senderOf(p).Address})
+	if err != nil {
+		return conversation{}, fmt.Errorf("check blocklist: %w", err)
+	}
+	status := "open"
+	if blocked {
+		status = "spam"
+	}
 	id, err := q.IngestCreateConversation(ctx, dbq.IngestCreateConversationParams{
 		MailboxID: raw.MailboxID, Subject: p.Subject, SubjectNormalized: dec.SubjectNormalized,
-		ContactID: contact, LastMessageAt: raw.ReceivedAt,
+		ContactID: contact, LastMessageAt: raw.ReceivedAt, Status: status,
 	})
 	if err != nil {
 		return conversation{}, fmt.Errorf("create conversation: %w", err)
 	}
-	conv.id, conv.status, conv.isNew = id, "open", true
+	conv.id, conv.status, conv.isNew, conv.blocked = id, status, true, blocked
 	return conv, nil
 }
 
@@ -420,7 +435,11 @@ func (w *Worker) recordEvents(ctx context.Context, q *dbq.Queries, mailbox pgtyp
 		return nil
 	}
 	if conv.isNew {
-		if err := add("created", map[string]string{"reason": string(conv.reason)}); err != nil {
+		data := map[string]any{"reason": string(conv.reason)}
+		if conv.blocked {
+			data["blocked_sender"] = true
+		}
+		if err := add("created", data); err != nil {
 			return err
 		}
 	}

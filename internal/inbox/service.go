@@ -204,23 +204,9 @@ type BulkResult struct {
 // Bulk applies ch to each conversation in its own transaction, so one failure (no access,
 // assignee without access) does not undo the others. Duplicate ids are applied once.
 func (s *Service) Bulk(ctx context.Context, actor Actor, ids []pgtype.UUID, ch Change) ([]BulkResult, error) {
-	if len(ids) > MaxBulk {
-		return nil, ErrTooManyIDs
-	}
-	seen := make(map[pgtype.UUID]bool, len(ids))
-	results := make([]BulkResult, 0, len(ids))
-	for _, id := range ids {
-		if seen[id] {
-			continue
-		}
-		seen[id] = true
-		v, err := s.Apply(ctx, actor, id, nil, ch)
-		if ctx.Err() != nil {
-			return results, ctx.Err()
-		}
-		results = append(results, BulkResult{ID: id, Version: v, Err: err})
-	}
-	return results, nil
+	return s.each(ctx, ids, func(tx pgx.Tx, id pgtype.UUID) (int32, error) {
+		return s.ApplyTx(ctx, tx, actor, id, nil, ch)
+	})
 }
 
 type event struct {

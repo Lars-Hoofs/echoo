@@ -17,6 +17,7 @@ export const settingsPages = [
   { to: '/instellingen/teams', label: 'Teams', access: 'teams.manage' },
   { to: '/instellingen/mailboxen', label: 'Mailboxen', access: 'mailboxes.manage' },
   { to: '/instellingen/labels', label: 'Labels', access: 'labels.manage' },
+  { to: '/instellingen/geblokkeerde-afzenders', label: 'Geblokkeerde afzenders', access: 'conversations.delete' },
   { to: '/instellingen/velden', label: 'Velden', access: 'settings.manage' },
   { to: '/instellingen/regels', label: 'Regels', access: 'automation.manage' },
   { to: '/instellingen/sla', label: 'SLA', access: 'sla.manage' },
@@ -48,6 +49,7 @@ export const customerPages = [
 
 // The other pages the command bar opens, with the permission the router demands for them.
 export const sectionPages = [
+  { to: '/prullenbak', label: 'Prullenbak', hint: 'Gesprekken', permission: 'conversations.delete' },
   { to: '/campagnes', label: 'Campagnes', hint: 'Klanten', permission: 'campaigns.manage' },
   { to: '/rapportage', label: 'Rapportage', permission: 'reports.view' },
   { to: '/kennisbank', label: 'Kennisbank' },

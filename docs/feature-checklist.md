@@ -15,6 +15,8 @@ out of scope by decision of the product owner. Status: [x] done, [ ] to do, [-] 
 - [x] HTML mail rendered sanitized in a sandboxed iframe, remote images blocked/allowed per sender, attachment download
 - [x] Private notes with @mentions
 - [x] Status (open/waiting/closed/spam), snooze, priority, assign agent/team
+- [x] Trash: delete (single and bulk), view read-only, restore, delete for good, empty; emptied after `trash_days` (default 30) by retention
+- [x] Sender blocklist per mailbox (address or domain): new conversations from a blocked sender start as spam; "Spam en afzender blokkeren" in the conversation
 - [x] Labels (CRUD, apply, filter)
 - [x] Conversation timeline events (assigned, status, labels)
 - [x] Collision detection (viewing/typing) and realtime updates (SSE)

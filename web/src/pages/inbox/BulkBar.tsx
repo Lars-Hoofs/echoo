@@ -1,12 +1,15 @@
 import * as Menu from '@radix-ui/react-dropdown-menu'
+import { useQuery } from '@tanstack/react-query'
 import { ChevronDown, X } from 'lucide-react'
 
 import { Button, IconButton } from '../../components/ui'
 import { type ConversationListItem, type ConversationStatus, statusLabel } from '../../lib/inbox'
+import { hasPermission, meQuery } from '../../lib/session'
 import { menuItem, menuPanel } from '../shell/menu'
 import { usePickers } from './ActionPickers'
 import { MacroMenu } from './MacroMenu'
 import { useConversationActions } from './useConversationActions'
+import { useTrashActions } from './useTrashActions'
 
 const menuStatuses: { status: ConversationStatus; label: string }[] = [
   { status: 'waiting', label: statusLabel.waiting },
@@ -27,6 +30,8 @@ export function BulkBar({
   onSelectAll: () => void
 }) {
   const apply = useConversationActions()
+  const trash = useTrashActions()
+  const me = useQuery(meQuery)
   const { openPicker } = usePickers()
   const run = (status: ConversationStatus) => {
     void apply(selected, { status })
@@ -78,6 +83,20 @@ export function BulkBar({
           Uitstellen
         </Button>
         <MacroMenu conversations={selected} size="sm" onDone={onClear} />
+        {hasPermission(me.data, 'conversations.delete') && (
+          <Button
+            size="sm"
+            onClick={() => {
+              void trash(
+                'trash',
+                selected.map((c) => c.id),
+              )
+              onClear()
+            }}
+          >
+            Verwijderen
+          </Button>
+        )}
       </div>
     </div>
   )

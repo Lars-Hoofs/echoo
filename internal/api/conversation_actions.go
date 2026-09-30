@@ -333,20 +333,7 @@ func (s *Server) bulkConversations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := make([]bulkResultJSON, 0, len(req.IDs))
-	valid := make([]pgtype.UUID, 0, len(req.IDs))
-	invalid := map[string]bool{}
-	for _, raw := range req.IDs {
-		id, ok := parseUUID(raw)
-		if !ok {
-			if !invalid[raw] {
-				invalid[raw] = true
-				results = append(results, bulkResultJSON{ID: raw, Code: "invalid_id"})
-			}
-			continue
-		}
-		valid = append(valid, id)
-	}
+	valid, results := parseBulkIDs(req.IDs)
 	applied, err := s.inbox.Bulk(r.Context(), actor, valid, ch)
 	if err != nil {
 		writeError(w, r, inboxError(err))
@@ -360,6 +347,25 @@ func (s *Server) bulkConversations(w http.ResponseWriter, r *http.Request) {
 		results = append(results, out)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"results": results})
+}
+
+// parseBulkIDs splits ids into parsed ones and a result per distinct unparsable one.
+func parseBulkIDs(ids []string) ([]pgtype.UUID, []bulkResultJSON) {
+	results := make([]bulkResultJSON, 0, len(ids))
+	valid := make([]pgtype.UUID, 0, len(ids))
+	invalid := map[string]bool{}
+	for _, raw := range ids {
+		id, ok := parseUUID(raw)
+		if !ok {
+			if !invalid[raw] {
+				invalid[raw] = true
+				results = append(results, bulkResultJSON{ID: raw, Code: "invalid_id"})
+			}
+			continue
+		}
+		valid = append(valid, id)
+	}
+	return valid, results
 }
 
 func bulkCode(r *http.Request, err error) string {
@@ -401,10 +407,19 @@ func (s *Server) listConversationEvents(w http.ResponseWriter, r *http.Request) 
 		writeError(w, r, errNotFound)
 		return
 	}
+	out, err := s.conversationEvents(ctx, id)
+	if err != nil {
+		writeError(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"events": out})
+}
+
+// conversationEvents is the timeline of a conversation the caller may read.
+func (s *Server) conversationEvents(ctx context.Context, id pgtype.UUID) ([]conversationEventJSON, error) {
 	rows, err := s.q.ListConversationEvents(ctx, id)
 	if err != nil {
-		writeError(w, r, fmt.Errorf("load events: %w", err))
-		return
+		return nil, fmt.Errorf("load events: %w", err)
 	}
 	out := make([]conversationEventJSON, len(rows))
 	for i, e := range rows {
@@ -416,7 +431,7 @@ func (s *Server) listConversationEvents(w http.ResponseWriter, r *http.Request) 
 			out[i].User = &refJSON{ID: uuidStr(e.UserID), Name: e.UserName.String}
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"events": out})
+	return out, nil
 }
 
 func (s *Server) listAssignees(w http.ResponseWriter, r *http.Request) {

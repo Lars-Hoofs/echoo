@@ -48,6 +48,8 @@ export const auditGroups = [
   { prefix: 'user.', label: 'Gebruikers' },
   { prefix: 'team.', label: 'Teams' },
   { prefix: 'mailbox.', label: 'Mailboxen' },
+  { prefix: 'conversations.', label: 'Gesprekken' },
+  { prefix: 'blocklist.', label: 'Blokkeerlijst' },
   { prefix: 'settings.', label: 'Instellingen' },
   { prefix: 'api_token.', label: 'API-tokens' },
   { prefix: 'webhook.', label: 'Webhooks' },
@@ -190,6 +192,9 @@ const auditActions: Record<string, string> = {
   'settings.sso_changed': 'SSO-instellingen gewijzigd',
   'settings.reports_changed': 'Rapportage-instellingen gewijzigd',
   'report.exported': 'Rapport geëxporteerd',
+  'conversations.purged': 'Gesprekken definitief verwijderd',
+  'blocklist.added': 'Afzender geblokkeerd',
+  'blocklist.removed': 'Blokkering opgeheven',
 }
 
 const auditTargets: Record<string, string> = {
@@ -216,6 +221,7 @@ const auditTargets: Record<string, string> = {
   job: 'Taak',
   raw_message: 'Opgeslagen mail',
   audit_log: 'Auditlog',
+  blocked_sender: 'Geblokkeerde afzender',
 }
 
 // What an entry acted on: the readable name from its metadata when there is one, else the type
@@ -223,7 +229,7 @@ const auditTargets: Record<string, string> = {
 export function auditTarget(type: string, id: string, metadata: Record<string, unknown>): string {
   if (!type) return '—'
   const label = auditTargets[type] ?? type
-  const named = [metadata.name, metadata.title, metadata.key].find((v): v is string => typeof v === 'string' && v !== '')
+  const named = [metadata.name, metadata.title, metadata.key, metadata.pattern].find((v): v is string => typeof v === 'string' && v !== '')
   return named ? `${label}: ${named}` : id ? `${label} ${id.slice(0, 8)}` : label
 }
 

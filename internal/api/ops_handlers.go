@@ -79,7 +79,7 @@ func (s *Server) putRetention(w http.ResponseWriter, r *http.Request) {
 		overrides := make([]map[string]any, len(set.Mailboxes))
 		for i, m := range set.Mailboxes {
 			overrides[i] = map[string]any{"mailbox_id": m.MailboxID.String(), "closed_conversation_months": m.ClosedConversationMonths,
-				"attachment_months": m.AttachmentMonths, "spam_days": m.SpamDays}
+				"attachment_months": m.AttachmentMonths, "spam_days": m.SpamDays, "trash_days": m.TrashDays}
 		}
 		return audit.Write(r.Context(), q, audit.Entry{Actor: actor.ID, IP: clientFrom(r).IP, Action: audit.RetentionChanged, TargetType: "settings", TargetID: "retention",
 			Metadata: map[string]any{"global": set.Global, "audit_months": set.AuditMonths, "mailbox_overrides": overrides}})

@@ -284,6 +284,12 @@ function eventText(e: TimelineEvent, now: Date): string {
       return str(d.recipient) ? `Bezorging aan ${str(d.recipient)} mislukt` : 'Bezorging mislukt'
     case 'woke':
       return d.manual === true ? `${who} hief het uitstel op` : 'Uitstel verstreken, het gesprek staat weer in de lijst'
+    case 'deleted':
+      return `${who} verplaatste het gesprek naar de prullenbak`
+    case 'restored':
+      return `${who} zette het gesprek terug uit de prullenbak`
+    case 'created':
+      return d.blocked_sender === true ? 'De afzender staat op de blokkeerlijst, dus het gesprek begon als spam' : 'Gesprek gestart'
     default:
       return `${who} wijzigde het gesprek`
   }
@@ -309,11 +315,14 @@ export type TimelineEntry<M> = { kind: 'message'; message: M } | { kind: 'event'
 const messageTime = (m: Timed) => new Date(m.received_at ?? m.sent_at ?? 0).getTime()
 
 // Events sit between the messages in time order; on a tie the message goes first. The `created`
-// event only marks where the conversation began, which the first message already shows.
+// event only marks where the conversation began, which the first message already shows, unless
+// it says the sender was blocked.
+const shownEvent = (e: TimelineEvent) => e.type !== 'created' || e.data.blocked_sender === true
+
 export function mergeTimeline<M extends Timed>(messages: M[], events: TimelineEvent[]): TimelineEntry<M>[] {
   const entries: (TimelineEntry<M> & { at: number })[] = [
     ...messages.map((message) => ({ kind: 'message' as const, message, at: messageTime(message) })),
-    ...events.filter((event) => event.type !== 'created').map((event) => ({ kind: 'event' as const, event, at: new Date(event.created_at).getTime() })),
+    ...events.filter(shownEvent).map((event) => ({ kind: 'event' as const, event, at: new Date(event.created_at).getTime() })),
   ]
   return entries.sort((a, b) => a.at - b.at || (a.kind === b.kind ? 0 : a.kind === 'message' ? -1 : 1))
 }

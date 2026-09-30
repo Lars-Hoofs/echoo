@@ -116,8 +116,8 @@ func (q *Queries) RetentionExpireUploads(ctx context.Context, batchSize int32) (
 }
 
 const retentionInsertPolicy = `-- name: RetentionInsertPolicy :exec
-INSERT INTO retention_policies (mailbox_id, closed_conversation_months, attachment_months, spam_days, updated_by)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO retention_policies (mailbox_id, closed_conversation_months, attachment_months, spam_days, trash_days, updated_by)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type RetentionInsertPolicyParams struct {
@@ -125,6 +125,7 @@ type RetentionInsertPolicyParams struct {
 	ClosedConversationMonths pgtype.Int4
 	AttachmentMonths         pgtype.Int4
 	SpamDays                 pgtype.Int4
+	TrashDays                pgtype.Int4
 	UpdatedBy                pgtype.UUID
 }
 
@@ -134,6 +135,7 @@ func (q *Queries) RetentionInsertPolicy(ctx context.Context, arg RetentionInsert
 		arg.ClosedConversationMonths,
 		arg.AttachmentMonths,
 		arg.SpamDays,
+		arg.TrashDays,
 		arg.UpdatedBy,
 	)
 	return err
@@ -166,7 +168,7 @@ func (q *Queries) RetentionListMailboxIDs(ctx context.Context) ([]pgtype.UUID, e
 }
 
 const retentionListPolicies = `-- name: RetentionListPolicies :many
-SELECT mailbox_id, closed_conversation_months, attachment_months, spam_days FROM retention_policies
+SELECT mailbox_id, closed_conversation_months, attachment_months, spam_days, trash_days FROM retention_policies
 `
 
 type RetentionListPoliciesRow struct {
@@ -174,6 +176,7 @@ type RetentionListPoliciesRow struct {
 	ClosedConversationMonths pgtype.Int4
 	AttachmentMonths         pgtype.Int4
 	SpamDays                 pgtype.Int4
+	TrashDays                pgtype.Int4
 }
 
 func (q *Queries) RetentionListPolicies(ctx context.Context) ([]RetentionListPoliciesRow, error) {
@@ -190,6 +193,7 @@ func (q *Queries) RetentionListPolicies(ctx context.Context) ([]RetentionListPol
 			&i.ClosedConversationMonths,
 			&i.AttachmentMonths,
 			&i.SpamDays,
+			&i.TrashDays,
 		); err != nil {
 			return nil, err
 		}
