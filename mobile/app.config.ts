@@ -35,6 +35,7 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: false,
   },
   plugins: [
+    './plugins/withSceneLifecycle',
     'expo-router',
     'expo-secure-store',
     [
