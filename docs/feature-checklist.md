@@ -30,6 +30,12 @@ out of scope by decision of the product owner. Status: [x] done, [ ] to do, [-] 
 - [x] Per-agent read state: unread rows in bold with a dot, unread count on My inbox, mark as unread from the conversation header
 - [x] Agent availability (online/busy/offline)
 
+## Mobile
+- [x] Native iOS and Android apps (`mobile/`, React Native/Expo): inbox views and status filter, conversation with actions (assign to me, close/reopen, snooze, priority, status, unread), reply with canned responses and undo, internal notes, notifications, search, availability; see docs/mobile.md
+- [x] Push notifications: APNs (iOS), FCM (Android) and self-hosted Web Push for browsers and the installed web app; per-user kinds, device list, test notification
+- [x] Installable web app (manifest, service worker, icons) with a phone tab bar and safe-area layout
+- [ ] Single sign-on inside the native apps (SSO-only workspaces use the web app on the phone for now)
+
 ## Automation and routing
 - [x] Automation rules (conditions → actions)
 - [x] Macros

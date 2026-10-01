@@ -34,6 +34,7 @@ var EncryptedColumns = []Column{
 	{"users", "totp_secret_enc", "id::text"},
 	{"webhooks", "secret_enc", "id::text"},
 	{"sso_settings", "client_secret_enc", "'singleton'"},
+	{"push_vapid", "private_key_enc", "'singleton'"},
 }
 
 func (c Column) name() string { return c.Table + "." + c.Column }

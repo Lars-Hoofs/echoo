@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client'
 
 import { ApiError } from './lib/api'
 import { initMotion } from './lib/motion'
+import { registerServiceWorker } from './lib/push'
 import { createAppRouter } from './router'
 
 // Radix injects a few <style> elements (scroll locking). The server puts a per-request CSP
@@ -25,6 +26,7 @@ function onApiError(err: unknown) {
 }
 
 initMotion()
+registerServiceWorker()
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({ onError: onApiError }),

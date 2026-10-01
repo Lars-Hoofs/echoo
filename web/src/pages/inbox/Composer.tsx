@@ -51,7 +51,7 @@ export function Composer({ conversationId, mailboxId, canWrite }: { conversation
   if (!canWrite || (me.data && !hasPermission(me.data, 'conversations.write'))) return <ReadOnlyNotice />
 
   return (
-    <div className="shrink-0 px-4 pb-4 min-[900px]:px-6">
+    <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] min-[900px]:px-6">
       <div className="card card-line card-s">
         <div className="flex items-center justify-between gap-3">
           <div role="tablist" aria-label="Soort bericht" className="tabs">
@@ -102,7 +102,7 @@ export function Composer({ conversationId, mailboxId, canWrite }: { conversation
 
 function ReadOnlyNotice() {
   return (
-    <div className="shrink-0 px-4 pb-4 min-[900px]:px-6">
+    <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] min-[900px]:px-6">
       <p className="t-body flex items-center gap-3 rounded-lg bg-subtle px-4 py-3">
         <MessageSquareLock aria-hidden className="shrink-0" />
         Je hebt alleen leesrechten voor dit gesprek.

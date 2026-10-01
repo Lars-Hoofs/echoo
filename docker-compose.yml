@@ -77,6 +77,14 @@ services:
       # Prometheus endpoint on a listener of its own, off when empty. Inside the container use
       # 0.0.0.0:9090 and publish nothing, so only containers on the same network can scrape it.
       ECHOO_METRICS_ADDR: ${ECHOO_METRICS_ADDR:-}
+      # Push to the native apps (docs/mobile.md); a platform without credentials is off. Mount
+      # the key files with a docker-compose.override.yml and point the _FILE variables at them.
+      ECHOO_APNS_KEY_FILE: ${ECHOO_APNS_KEY_FILE:-}
+      ECHOO_APNS_KEY_ID: ${ECHOO_APNS_KEY_ID:-}
+      ECHOO_APNS_TEAM_ID: ${ECHOO_APNS_TEAM_ID:-}
+      ECHOO_APNS_TOPIC: ${ECHOO_APNS_TOPIC:-}
+      ECHOO_APNS_ENVIRONMENT: ${ECHOO_APNS_ENVIRONMENT:-}
+      ECHOO_FCM_CREDENTIALS_FILE: ${ECHOO_FCM_CREDENTIALS_FILE:-}
     secrets: [database_url, encryption_keys]
     # Only reachable from this host; put a TLS-terminating reverse proxy in front.
     ports:

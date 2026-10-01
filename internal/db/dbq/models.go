@@ -520,6 +520,7 @@ type Notification struct {
 	CreatedAt      pgtype.Timestamptz
 	ReadAt         pgtype.Timestamptz
 	EmailHandledAt pgtype.Timestamptz
+	PushHandledAt  pgtype.Timestamptz
 }
 
 type Organization struct {
@@ -553,6 +554,26 @@ type Outbound struct {
 type PendingBlobDeletion struct {
 	BlobKey  string
 	QueuedAt pgtype.Timestamptz
+}
+
+type PushDevice struct {
+	ID         pgtype.UUID
+	UserID     pgtype.UUID
+	SessionID  pgtype.UUID
+	Kind       string
+	Endpoint   string
+	P256dh     []byte
+	Auth       []byte
+	Label      string
+	CreatedAt  pgtype.Timestamptz
+	LastPushAt pgtype.Timestamptz
+}
+
+type PushVapid struct {
+	Singleton     bool
+	PublicKey     []byte
+	PrivateKeyEnc []byte
+	CreatedAt     pgtype.Timestamptz
 }
 
 type RawMessage struct {
@@ -775,6 +796,10 @@ type User struct {
 	Permissions            []string
 	UnreadSince            pgtype.Timestamptz
 	EmailNotifyReplies     bool
+	PushNotifyMentions     bool
+	PushNotifyAssignments  bool
+	PushNotifyReplies      bool
+	PushNotifySla          bool
 }
 
 type Webhook struct {

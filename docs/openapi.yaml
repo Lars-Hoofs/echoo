@@ -3299,7 +3299,7 @@ paths:
   /me/notification-settings:
     get:
       tags: [Account]
-      summary: Email notification settings of the signed-in user
+      summary: Email and push notification settings of the signed-in user
       responses:
         "200":
           description: The settings.
@@ -3307,20 +3307,34 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [email, system_mail_available]
+                required: [email, push, system_mail_available]
                 properties:
                   email: { $ref: "#/components/schemas/EmailNotificationSettings" }
+                  push: { $ref: "#/components/schemas/PushNotificationSettings" }
                   system_mail_available: { type: boolean }
         "401": { $ref: "#/components/responses/Unauthenticated" }
     put:
       tags: [Account]
-      summary: Change the email notification settings
-      description: Opt in per kind. The email says who did what and links to the conversation; it holds no message content.
+      summary: Change the email and push notification settings
+      description: |
+        Opt in per kind. The email says who did what and links to the conversation; it holds no
+        message content. `push` is optional; leaving it out keeps the stored push choices. A body
+        with only `push` keeps the stored email choices.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/EmailNotificationSettings" }
+            schema:
+              anyOf:
+                - allOf:
+                    - { $ref: "#/components/schemas/EmailNotificationSettings" }
+                    - type: object
+                      properties:
+                        push: { $ref: "#/components/schemas/PushNotificationSettings" }
+                - type: object
+                  required: [push]
+                  properties:
+                    push: { $ref: "#/components/schemas/PushNotificationSettings" }
       responses:
         "200":
           description: Saved.
@@ -3328,11 +3342,125 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [email]
+                required: [email, push]
                 properties:
                   email: { $ref: "#/components/schemas/EmailNotificationSettings" }
+                  push: { $ref: "#/components/schemas/PushNotificationSettings" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "422": { $ref: "#/components/responses/Validation" }
+
+  /push/config:
+    get:
+      tags: [Account]
+      summary: Which push services this server can use
+      description: |
+        `web_push_public_key` is the VAPID application server key (base64url) that browsers
+        subscribe with. `apns` and `fcm` say whether the native iOS and Android apps can
+        register (see docs/mobile.md).
+      responses:
+        "200":
+          description: The push configuration.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [web_push_public_key, apns, fcm]
+                properties:
+                  web_push_public_key: { type: string, nullable: true }
+                  apns: { type: boolean }
+                  fcm: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+
+  /push/devices:
+    get:
+      tags: [Account]
+      summary: The signed-in user's push devices
+      responses:
+        "200":
+          description: The devices, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices:
+                    type: array
+                    items: { $ref: "#/components/schemas/PushDevice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+    post:
+      tags: [Account]
+      summary: Register this device for push notifications
+      description: |
+        Browser session only. `webpush` takes the browser's PushSubscription (`endpoint` from a
+        known push service, `keys.p256dh`, `keys.auth`); `apns` and `fcm` take the native device
+        token as `endpoint`. The device belongs to the session: logging out or revoking the
+        session removes it; a session that only expires keeps it. Registering an endpoint again
+        moves it to the current user. Field code `not_configured` on `kind` means the server has
+        no credentials for that service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, endpoint]
+              properties:
+                kind: { type: string, enum: [webpush, apns, fcm] }
+                endpoint: { type: string, maxLength: 2048 }
+                keys:
+                  type: object
+                  properties:
+                    p256dh: { type: string }
+                    auth: { type: string }
+                label: { type: string, maxLength: 200 }
+      responses:
+        "201":
+          description: Registered.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PushDevice" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Validation" }
+
+  /push/devices/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/Id" }
+    delete:
+      tags: [Account]
+      summary: Stop pushing to one of your devices
+      description: Only with a browser or app session; API tokens cannot register or remove devices.
+      responses:
+        "204": { description: Removed. }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /push/test:
+    post:
+      tags: [Account]
+      summary: Send a test notification to all your devices
+      description: At most 10 a minute. `error` is `gone` (the device was removed) or `failed`.
+      responses:
+        "200":
+          description: One result per device.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, ok]
+                      properties:
+                        id: { type: string, format: uuid }
+                        ok: { type: boolean }
+                        error: { type: string, enum: [gone, failed] }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "429": { description: Too many test notifications. }
 
   /rules:
     get:
@@ -6211,6 +6339,25 @@ components:
         mentions: { type: boolean }
         assignments: { type: boolean }
         replies: { type: boolean, description: "Customer replies in conversations assigned to you. Optional on PUT; omitting it keeps the stored choice." }
+    PushNotificationSettings:
+      type: object
+      required: [mentions, assignments, replies, sla]
+      description: Which notifications reach the user's registered devices. All on by default.
+      properties:
+        mentions: { type: boolean }
+        assignments: { type: boolean }
+        replies: { type: boolean }
+        sla: { type: boolean, description: "SLA deadlines at risk or breached." }
+    PushDevice:
+      type: object
+      required: [id, kind, label, created_at, last_push_at, current]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [webpush, apns, fcm] }
+        label: { type: string }
+        created_at: { type: string, format: date-time }
+        last_push_at: { type: string, format: date-time, nullable: true }
+        current: { type: boolean, description: "Registered by the session making the request." }
     RecoveryCodes:
       type: object
       required: [recovery_codes]

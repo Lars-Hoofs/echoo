@@ -5,7 +5,8 @@ web app, plus PostgreSQL. Licensed under AGPL-3.0.
 
 See [docs/feature-checklist.md](docs/feature-checklist.md) for what exists,
 [docs/architecture.md](docs/architecture.md), [SECURITY.md](SECURITY.md),
-[DESIGN.md](DESIGN.md), and [docs/operations.md](docs/operations.md) for running it.
+[DESIGN.md](DESIGN.md), [docs/operations.md](docs/operations.md) for running it, and
+[docs/mobile.md](docs/mobile.md) for the iOS and Android apps and push notifications.
 
 ## Quick start (Docker Compose)
 

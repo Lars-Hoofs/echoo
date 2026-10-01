@@ -1,14 +1,17 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { Outlet, useLocation } from '@tanstack/react-router'
-import { Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { Outlet, useLocation, useRouter } from '@tanstack/react-router'
+import { X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import { Logo } from '../components/Logo'
 import { ToastProvider } from '../components/Toast'
 import { IconButton } from '../components/ui'
+import { onNotificationOpen, resyncPush } from '../lib/push'
 import { useRealtime } from '../lib/realtime'
 import { PickerProvider } from './inbox/ActionPickers'
 import { CommandProvider } from './shell/CommandBar'
+import { BottomNav } from './shell/BottomNav'
+import { NotificationsBell } from './shell/NotificationsBell'
 import { SidebarBody } from './shell/Sidebar'
 
 const floating = 'mx-2 mb-2 rounded-lg min-[1000px]:m-2 min-[1000px]:ml-0'
@@ -19,6 +22,7 @@ const flat = 'max-[899px]:border-0 min-[900px]:mx-2 min-[900px]:mb-2 min-[900px]
 // conversation's own header with a back button).
 export function AppShell() {
   useRealtime()
+  usePushNotifications()
   const [sheetOpen, setSheetOpen] = useState(false)
   const pathname = useLocation({ select: (l) => l.pathname })
   // On phones an open conversation is a full-screen page with its own back button.
@@ -35,16 +39,24 @@ export function AppShell() {
 
             <div className="flex min-w-0 flex-1 flex-col">
               <header
-                className={`flex h-14 shrink-0 items-center gap-2 px-3 min-[1000px]:hidden ${conversationOpen ? 'max-[899px]:hidden' : ''}`}
+                className={`flex shrink-0 items-center gap-2 px-3 pt-[env(safe-area-inset-top)] min-[1000px]:hidden ${conversationOpen ? 'max-[899px]:hidden' : ''}`}
               >
-                <IconButton label="Menu openen" size="sm" onClick={() => setSheetOpen(true)}>
-                  <Menu size={16} aria-hidden />
-                </IconButton>
-                <Logo size="sm" />
+                <div className="flex h-14 flex-1 items-center gap-2">
+                  <Logo size="sm" />
+                  <span className="ml-auto">
+                    <NotificationsBell />
+                  </span>
+                </div>
               </header>
-              <main className={`relative min-h-0 flex-1 overflow-hidden border border-line bg-surface ${conversationOpen ? flat : floating}`}>
+              <main
+                className={`relative min-h-0 flex-1 overflow-hidden border border-line bg-surface ${conversationOpen ? `${flat} max-[899px]:pt-[env(safe-area-inset-top)]` : floating}`}
+              >
                 <Outlet />
               </main>
+              {/* On phones an open conversation keeps the whole screen for reading and replying. */}
+              <div className={conversationOpen ? 'max-[899px]:hidden' : ''}>
+                <BottomNav onMore={() => setSheetOpen(true)} />
+              </div>
             </div>
 
             <Dialog.Root open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -52,7 +64,7 @@ export function AppShell() {
                 <Dialog.Overlay className="fixed inset-0 z-40 bg-scrim backdrop-blur-sm data-[state=open]:animate-[echoo-fade-in_var(--dur-move)_var(--ease-enter)] min-[1000px]:hidden" />
                 <Dialog.Content
                   aria-describedby={undefined}
-                  className="fixed inset-y-0 left-0 z-50 w-[320px] max-w-[88vw] border-r border-line bg-app min-[1000px]:hidden"
+                  className="fixed inset-y-0 left-0 z-50 w-[320px] max-w-[88vw] border-r border-line bg-app pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] min-[1000px]:hidden"
                 >
                   <Dialog.Title className="sr-only">Navigatie</Dialog.Title>
                   <Dialog.Close asChild>
@@ -69,4 +81,14 @@ export function AppShell() {
       </PickerProvider>
     </ToastProvider>
   )
+}
+
+// Tapping a notification opens its conversation; a device that already allows notifications is
+// re-registered, so it follows the user who signed in last.
+function usePushNotifications() {
+  const router = useRouter()
+  useEffect(() => onNotificationOpen((path) => void router.navigate({ to: path })), [router])
+  useEffect(() => {
+    resyncPush().catch((err: unknown) => console.warn('push registration not refreshed', err))
+  }, [])
 }

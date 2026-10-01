@@ -174,6 +174,12 @@ const profileRoute = createRoute({
   component: lazyRouteComponent(() => import('./pages/settings/Profile'), 'ProfilePage'),
 })
 
+const notificationsRoute = createRoute({
+  getParentRoute: () => settingsRoute,
+  path: '/instellingen/meldingen',
+  component: lazyRouteComponent(() => import('./pages/settings/Notifications'), 'NotificationsPage'),
+})
+
 const templatesRoute = createRoute({
   getParentRoute: () => settingsRoute,
   path: '/instellingen/standaardantwoorden',
@@ -434,6 +440,7 @@ const routeTree = rootRoute.addChildren([
       reportsRoute,
       settingsRoute.addChildren([
         profileRoute,
+        notificationsRoute,
         securityRoute,
         templatesRoute,
         macrosRoute,

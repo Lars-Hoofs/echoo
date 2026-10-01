@@ -349,3 +349,48 @@ func TestEmptyOptionalVariablesMeanDefaults(t *testing.T) {
 		t.Fatalf("empty values changed the defaults: %+v", c)
 	}
 }
+
+func TestNativePushSettings(t *testing.T) {
+	m := valid()
+	c, err := Load(env(m))
+	if err != nil || c.APNsKey != "" || c.FCMCredentials != "" || c.APNsSandbox {
+		t.Fatalf("push must be off by default: %+v %v", c, err)
+	}
+
+	m["ECHOO_APNS_KEY"] = "-----BEGIN PRIVATE KEY-----"
+	m["ECHOO_APNS_KEY_ID"] = "ABC123DEFG"
+	if _, err := Load(env(m)); err == nil || !strings.Contains(err.Error(), "must be set together") {
+		t.Fatalf("half an APNs configuration: %v", err)
+	}
+	m["ECHOO_APNS_TEAM_ID"] = "TEAM123456"
+	m["ECHOO_APNS_TOPIC"] = "nl.echoo.app"
+	m["ECHOO_APNS_ENVIRONMENT"] = "sandbox"
+	m["ECHOO_FCM_CREDENTIALS"] = `{"type":"service_account"}`
+	c, err = Load(env(m))
+	if err != nil || !c.APNsSandbox || c.APNsTopic != "nl.echoo.app" || c.FCMCredentials == "" {
+		t.Fatalf("config = %+v, err = %v", c, err)
+	}
+	m["ECHOO_APNS_ENVIRONMENT"] = "staging"
+	if _, err := Load(env(m)); err == nil {
+		t.Fatal("an unknown APNs environment was accepted")
+	}
+}
+
+func TestEmptyFileVariableIsUnset(t *testing.T) {
+	m := valid()
+	m["ECHOO_APNS_KEY_FILE"] = ""
+	m["ECHOO_FCM_CREDENTIALS"] = ""
+	m["ECHOO_FCM_CREDENTIALS_FILE"] = ""
+	c, err := Load(env(m))
+	if err != nil || c.APNsKey != "" || c.FCMCredentials != "" {
+		t.Fatalf("empty variables must mean unset: %+v, %v", c, err)
+	}
+	path := filepath.Join(t.TempDir(), "fcm.json")
+	if err := os.WriteFile(path, []byte(`{"type":"service_account"}`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m["ECHOO_FCM_CREDENTIALS_FILE"] = path
+	if c, err = Load(env(m)); err != nil || c.FCMCredentials != `{"type":"service_account"}` {
+		t.Fatalf("an empty value next to a file must use the file: %q, %v", c.FCMCredentials, err)
+	}
+}

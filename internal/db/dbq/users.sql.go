@@ -56,7 +56,7 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, name, role, password_hash, password_must_change, temp_password_expires_at)
 VALUES ($1, $2, $3, $4, $5, CASE WHEN $5::boolean THEN now() + interval '72 hours' END)
-RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type CreateUserParams struct {
@@ -105,6 +105,10 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
@@ -150,7 +154,7 @@ func (q *Queries) EnableTOTP(ctx context.Context, arg EnableTOTPParams) (int64, 
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies FROM users WHERE id = $1
+SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -185,12 +189,16 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies FROM users WHERE email = $1
+SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -225,12 +233,16 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
 
 const getUserForUpdate = `-- name: GetUserForUpdate :one
-SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies FROM users WHERE id = $1 FOR UPDATE
+SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla FROM users WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) GetUserForUpdate(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -265,6 +277,10 @@ func (q *Queries) GetUserForUpdate(ctx context.Context, id pgtype.UUID) (User, e
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
@@ -275,7 +291,7 @@ type InsertRecoveryCodesParams struct {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies FROM users ORDER BY lower(name), id
+SELECT id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla FROM users ORDER BY lower(name), id
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -316,6 +332,10 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Permissions,
 			&i.UnreadSince,
 			&i.EmailNotifyReplies,
+			&i.PushNotifyMentions,
+			&i.PushNotifyAssignments,
+			&i.PushNotifyReplies,
+			&i.PushNotifySla,
 		); err != nil {
 			return nil, err
 		}
@@ -422,7 +442,7 @@ UPDATE users
 SET deactivated_at = CASE WHEN $2::boolean THEN now() ELSE NULL END,
     updated_at     = now()
 WHERE id = $1
-RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type SetUserDeactivatedParams struct {
@@ -462,6 +482,10 @@ func (q *Queries) SetUserDeactivated(ctx context.Context, arg SetUserDeactivated
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
@@ -490,7 +514,7 @@ func (q *Queries) SetUserPassword(ctx context.Context, arg SetUserPasswordParams
 }
 
 const updateUserName = `-- name: UpdateUserName :one
-UPDATE users SET name = $2, updated_at = now() WHERE id = $1 RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+UPDATE users SET name = $2, updated_at = now() WHERE id = $1 RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type UpdateUserNameParams struct {
@@ -530,12 +554,16 @@ func (q *Queries) UpdateUserName(ctx context.Context, arg UpdateUserNameParams) 
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
 
 const updateUserRole = `-- name: UpdateUserRole :one
-UPDATE users SET role = $2, custom_role_id = NULL, permissions = '{}', updated_at = now() WHERE id = $1 RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+UPDATE users SET role = $2, custom_role_id = NULL, permissions = '{}', updated_at = now() WHERE id = $1 RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type UpdateUserRoleParams struct {
@@ -575,12 +603,16 @@ func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) 
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
 
 const updateUserTheme = `-- name: UpdateUserTheme :one
-UPDATE users SET theme = $2, updated_at = now() WHERE id = $1 RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+UPDATE users SET theme = $2, updated_at = now() WHERE id = $1 RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type UpdateUserThemeParams struct {
@@ -620,6 +652,10 @@ func (q *Queries) UpdateUserTheme(ctx context.Context, arg UpdateUserThemeParams
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }

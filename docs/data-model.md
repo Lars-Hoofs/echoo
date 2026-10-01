@@ -348,6 +348,13 @@ of the batch in the same transaction, and only then deletes it, with a transacti
 that the trigger accepts only when `current_user` is the table owner. The application role
 (`echoo_app`) owns nothing, can only `EXECUTE` the function, and cannot delete rows itself.
 
+**push_devices** `id, user_id, session_id NULL (ON DELETE SET NULL), kind (webpush|apns|fcm), endpoint
+(push service URL or device token), p256dh, auth (Web Push keys), label, created_at, last_push_at`,
+unique `(kind, endpoint)`. Revoking a session deletes its devices (trigger); an expired session keeps
+them. **push_vapid** is a single row with the Web Push key pair, the private key encrypted with the
+keyring. **notifications.push_handled_at** is set when the dispatcher claims a row, pushed or not;
+rows older than 30 minutes are not pushed.
+
 **settings** `key text PK, value jsonb, updated_by, updated_at` (retention periods, remote-image
 default, max attachment size overrides, business name).
 
@@ -412,6 +419,7 @@ Goose, SQL files, embedded in the binary. Each migration runs in a transaction u
 | `00016_reports_csat.sql` | Report indexes (`conversations_report_created`, `conversations_report_resolved`, `messages_report_in`, `messages_report_out`), `csat_settings`, `csat_requests`, `csat_responses`, notification kind `csat`. |
 | `00020_campaigns.sql` | `contacts.unsubscribed_at`, `contact_addresses.bounced_at`, `outbound.extra_headers`, `campaigns`, `campaign_recipients`. |
 | `00022_campaign_started_by.sql` | `campaigns.started_by`: recipients are resolved with the visibility of the user who starts a campaign. |
+| `00024_push.sql` | `push_devices` (+ trigger that drops a revoked session's devices), `push_vapid`, `users.push_notify_*`, `notifications.push_handled_at`. |
 | `00023_trash_blocklist.sql` | `conversations.deleted_by` and the trash index, `retention_policies.trash_days` (30 for existing rows), `blocked_senders`. |
 | `00019_operations.sql` | `retention_policies`; `audit_log_append_only()` with the purge exception; `audit_log_purge()` (`SECURITY DEFINER`, `EXECUTE` for `echoo_app` only). |
 | `river` | River's migrations, applied by `rivermigrate` in the same `echoo migrate` run. |

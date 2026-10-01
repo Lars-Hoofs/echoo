@@ -2,6 +2,7 @@ import * as Menu from '@radix-ui/react-dropdown-menu'
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import {
+  BellRing,
   Archive,
   BookOpen,
   Building2,
@@ -362,6 +363,9 @@ function SettingsNav({ me, onNavigate }: { me: Me; onNavigate: () => void }) {
         <SettingsLink to="/instellingen/beveiliging" icon={<KeyRound aria-hidden />} onNavigate={onNavigate}>
           Beveiliging
         </SettingsLink>
+        <SettingsLink to="/instellingen/meldingen" icon={<BellRing aria-hidden />} onNavigate={onNavigate}>
+          Meldingen
+        </SettingsLink>
         <SettingsLink to="/instellingen/standaardantwoorden" icon={<MessageSquareText aria-hidden />} onNavigate={onNavigate}>
           Standaardantwoorden
         </SettingsLink>
@@ -535,6 +539,11 @@ function UserMenu({ user, onNavigate }: { user: User; onNavigate: () => void }) 
           <Menu.Item asChild className={menuItem}>
             <Link to="/instellingen/beveiliging" onClick={onNavigate}>
               <KeyRound aria-hidden /> Beveiliging
+            </Link>
+          </Menu.Item>
+          <Menu.Item asChild className={menuItem}>
+            <Link to="/instellingen/meldingen" onClick={onNavigate}>
+              <BellRing aria-hidden /> Meldingen
             </Link>
           </Menu.Item>
           {hasPermission(me.data, 'conversations.write') && (

@@ -7,7 +7,6 @@ import { Badge, Button, Card, ErrorNotice, Field, Input, Page, PageHeader, Segme
 import { api } from '../../lib/api'
 import { errorMessage, fieldError } from '../../lib/errors'
 import { applyTheme, type Me, meQuery, roleName, type Theme, type User } from '../../lib/session'
-import { NotificationSettingsCard } from './NotificationSettings'
 import { SignatureCard } from './Signatures'
 
 const themes: { value: Theme; label: string }[] = [
@@ -74,7 +73,6 @@ export function ProfilePage() {
         </Card>
       </form>
       <SignatureCard />
-      <NotificationSettingsCard />
       <Card title="Weergave" icon={<Palette size={16} />} flush>
         <SettingRow title="Thema" help="Systeem volgt de instelling van je besturingssysteem.">
           <Segmented label="Thema" value={me.user.theme} options={themes} onChange={(theme) => update.mutate({ theme })} />

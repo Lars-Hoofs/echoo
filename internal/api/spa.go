@@ -39,6 +39,15 @@ func (s *Server) spa() http.Handler {
 				} else {
 					w.Header().Set("Cache-Control", "no-cache")
 				}
+				switch name {
+				case "sw.js":
+					// A worker runs under its own script's CSP; the strict default would keep it
+					// from loading the notification icons.
+					w.Header().Set("Content-Security-Policy", "default-src 'self'; object-src 'none'; base-uri 'none'")
+				case "manifest.webmanifest":
+					// Go does not know the extension, and nosniff makes the type matter.
+					w.Header().Set("Content-Type", "application/manifest+json")
+				}
 				files.ServeHTTP(w, r)
 				return
 			} else if err != nil && !errors.Is(err, fs.ErrNotExist) {

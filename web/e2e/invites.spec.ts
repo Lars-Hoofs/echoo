@@ -194,7 +194,7 @@ test('a colleague resets a forgotten password with the emailed link', async ({ p
 
 test('a colleague opts in to email notifications', async ({ page }) => {
   await signInReady(page, inviteeEmail, newPassword)
-  await page.goto('/instellingen/profiel')
+  await page.goto('/instellingen/meldingen')
   const mentions = page.getByRole('switch', { name: 'E-mail bij een vermelding' })
   await expect(mentions).toHaveAttribute('aria-checked', 'false')
   await mentions.click()

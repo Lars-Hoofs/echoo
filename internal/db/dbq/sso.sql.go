@@ -18,7 +18,7 @@ VALUES (
     COALESCE((SELECT custom_roles.permissions FROM custom_roles WHERE custom_roles.id = $4), '{}'),
     $5
 )
-RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type CreateSSOUserParams struct {
@@ -67,6 +67,10 @@ func (q *Queries) CreateSSOUser(ctx context.Context, arg CreateSSOUserParams) (U
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }

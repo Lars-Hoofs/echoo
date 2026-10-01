@@ -41,6 +41,7 @@ import (
 	"echoo/internal/mail/send"
 	"echoo/internal/mailauth"
 	"echoo/internal/metrics"
+	"echoo/internal/push"
 	"echoo/internal/retention"
 	"echoo/internal/scan"
 	"echoo/internal/storage"
@@ -230,7 +231,17 @@ func serve() error {
 		}()
 	}
 
-	apiSrv := api.New(a.cfg, a.pool, a.auth, web.Dist(), api.WithMetrics(reg), api.WithKeyring(a.keys), api.WithMailboxReloader(mailboxes), api.WithJobs(jobs), api.WithStorage(a.store), api.WithScanner(scanner), api.WithOAuth(oauth), api.WithSysmail(sysmailer))
+	pushOpts := push.Options{FCMCredentials: a.cfg.FCMCredentials}
+	if a.cfg.APNsKey != "" {
+		pushOpts.APNs = &push.APNsConfig{KeyPEM: a.cfg.APNsKey, KeyID: a.cfg.APNsKeyID, TeamID: a.cfg.APNsTeamID, Topic: a.cfg.APNsTopic, Sandbox: a.cfg.APNsSandbox}
+	}
+	pushSenders, err := push.NewSenders(ctx, dbq.New(a.pool), a.keys, a.cfg.BaseURL, pushOpts)
+	if err != nil {
+		return fmt.Errorf("push: %w", err)
+	}
+	go push.NewDispatcher(a.pool, pushSenders, slog.Default()).Run(ctx)
+
+	apiSrv := api.New(a.cfg, a.pool, a.auth, web.Dist(), api.WithMetrics(reg), api.WithKeyring(a.keys), api.WithMailboxReloader(mailboxes), api.WithJobs(jobs), api.WithStorage(a.store), api.WithScanner(scanner), api.WithOAuth(oauth), api.WithSysmail(sysmailer), api.WithPush(pushSenders))
 	go apiSrv.Realtime().Run(ctx)
 	if reg != nil {
 		reg.TrackStreams(apiSrv.Realtime().Streams)

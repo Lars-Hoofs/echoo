@@ -9,6 +9,7 @@ export type SettingsAccess = 'everyone' | 'owner' | Permission
 export const settingsPages = [
   { to: '/instellingen/profiel', label: 'Profiel', access: 'everyone' },
   { to: '/instellingen/beveiliging', label: 'Beveiliging', access: 'everyone' },
+  { to: '/instellingen/meldingen', label: 'Meldingen', access: 'everyone' },
   { to: '/instellingen/standaardantwoorden', label: 'Standaardantwoorden', access: 'everyone' },
   { to: '/instellingen/macros', label: "Macro's", access: 'everyone' },
   { to: '/instellingen/api-tokens', label: 'API-tokens', access: 'everyone' },

@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -56,6 +57,15 @@ type Config struct {
 	SystemMailbox string
 	// SystemSMTP is a dedicated relay for system mail, or nil.
 	SystemSMTP *SMTPRelay
+
+	// Push to the native apps. APNs (iOS) needs all of its values; FCM (Android) needs the
+	// Firebase service account key. Web Push needs nothing: its key is made on first use.
+	APNsKey        string
+	APNsKeyID      string
+	APNsTeamID     string
+	APNsTopic      string
+	APNsSandbox    bool
+	FCMCredentials string
 }
 
 // SMTPRelay is a dedicated SMTP server for system mail, from ECHOO_SMTP_URL.
@@ -194,6 +204,23 @@ func Load(lookup func(string) (string, bool)) (*Config, error) {
 		errs = append(errs, errors.New("set either ECHOO_SYSTEM_MAILBOX or ECHOO_SMTP_URL, not both"))
 	}
 
+	c.APNsKey = get("ECHOO_APNS_KEY", false)
+	c.APNsKeyID = get("ECHOO_APNS_KEY_ID", false)
+	c.APNsTeamID = get("ECHOO_APNS_TEAM_ID", false)
+	c.APNsTopic = get("ECHOO_APNS_TOPIC", false)
+	apns := []string{c.APNsKey, c.APNsKeyID, c.APNsTeamID, c.APNsTopic}
+	if slices.Contains(apns, "") && slices.ContainsFunc(apns, func(v string) bool { return v != "" }) {
+		errs = append(errs, errors.New("ECHOO_APNS_KEY, ECHOO_APNS_KEY_ID, ECHOO_APNS_TEAM_ID and ECHOO_APNS_TOPIC must be set together"))
+	}
+	switch env := get("ECHOO_APNS_ENVIRONMENT", false); env {
+	case "", "production":
+	case "sandbox":
+		c.APNsSandbox = true
+	default:
+		errs = append(errs, fmt.Errorf("ECHOO_APNS_ENVIRONMENT must be production or sandbox, not %q", env))
+	}
+	c.FCMCredentials = get("ECHOO_FCM_CREDENTIALS", false)
+
 	if raw := get("ECHOO_BASE_URL", true); raw != "" {
 		u, err := parseBaseURL(raw)
 		if err != nil {
@@ -248,8 +275,11 @@ func LoadDatabaseURL(lookup func(string) (string, bool)) (string, error) {
 // value returns NAME, or the contents of the file named by NAME_FILE. Setting both is an error
 // because it is ambiguous which one wins.
 func value(lookup func(string) (string, bool), name string) (string, error) {
+	// An empty variable counts as unset: Compose passes every optional one through, empty.
 	v, hasValue := lookup(name)
+	hasValue = hasValue && v != ""
 	path, hasFile := lookup(name + "_FILE")
+	hasFile = hasFile && path != ""
 	switch {
 	case hasValue && hasFile:
 		return "", fmt.Errorf("set either %s or %s_FILE, not both", name, name)

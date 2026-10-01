@@ -10,7 +10,7 @@ export default defineConfig(
   reactHooks.configs.flat.recommended,
   {
     languageOptions: {
-      parserOptions: { projectService: { allowDefaultProject: ['eslint.config.js'] }, tsconfigRootDir: import.meta.dirname },
+      parserOptions: { projectService: { allowDefaultProject: ['eslint.config.js', 'public/sw.js'] }, tsconfigRootDir: import.meta.dirname },
     },
     rules: {
       'no-restricted-syntax': [
@@ -31,4 +31,10 @@ export default defineConfig(
     },
   },
   { files: ['eslint.config.js'], extends: [tseslint.configs.disableTypeChecked] },
+  // The service worker is plain JavaScript served as is from public/.
+  {
+    files: ['public/sw.js'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { self: 'readonly', URL: 'readonly' } },
+  },
 )

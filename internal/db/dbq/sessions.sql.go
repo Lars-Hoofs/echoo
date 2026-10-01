@@ -60,7 +60,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const getActiveSession = `-- name: GetActiveSession :one
-SELECT sessions.id, sessions.user_id, sessions.token_hash, sessions.csrf_token, sessions.mfa_pending, sessions.created_at, sessions.last_seen_at, sessions.idle_expires_at, sessions.expires_at, sessions.ip, sessions.user_agent, sessions.revoked_at, sessions.idp_mfa, users.id, users.email, users.name, users.role, users.password_hash, users.password_changed_at, users.password_must_change, users.totp_secret_enc, users.totp_enabled_at, users.totp_last_step, users.failed_login_count, users.locked_until, users.last_login_at, users.theme, users.deactivated_at, users.created_at, users.updated_at, users.temp_password_expires_at, users.invited_at, users.email_notify_mentions, users.email_notify_assignments, users.max_open, users.availability, users.last_auto_assigned_at, users.custom_role_id, users.permissions, users.unread_since, users.email_notify_replies
+SELECT sessions.id, sessions.user_id, sessions.token_hash, sessions.csrf_token, sessions.mfa_pending, sessions.created_at, sessions.last_seen_at, sessions.idle_expires_at, sessions.expires_at, sessions.ip, sessions.user_agent, sessions.revoked_at, sessions.idp_mfa, users.id, users.email, users.name, users.role, users.password_hash, users.password_changed_at, users.password_must_change, users.totp_secret_enc, users.totp_enabled_at, users.totp_last_step, users.failed_login_count, users.locked_until, users.last_login_at, users.theme, users.deactivated_at, users.created_at, users.updated_at, users.temp_password_expires_at, users.invited_at, users.email_notify_mentions, users.email_notify_assignments, users.max_open, users.availability, users.last_auto_assigned_at, users.custom_role_id, users.permissions, users.unread_since, users.email_notify_replies, users.push_notify_mentions, users.push_notify_assignments, users.push_notify_replies, users.push_notify_sla
 FROM sessions
 JOIN users ON users.id = sessions.user_id
 WHERE sessions.token_hash = $1
@@ -120,6 +120,10 @@ func (q *Queries) GetActiveSession(ctx context.Context, tokenHash []byte) (GetAc
 		&i.User.Permissions,
 		&i.User.UnreadSince,
 		&i.User.EmailNotifyReplies,
+		&i.User.PushNotifyMentions,
+		&i.User.PushNotifyAssignments,
+		&i.User.PushNotifyReplies,
+		&i.User.PushNotifySla,
 	)
 	return i, err
 }

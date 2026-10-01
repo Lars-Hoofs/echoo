@@ -16,7 +16,7 @@ UPDATE users
 SET name = $2, password_hash = $3, password_must_change = false, password_changed_at = now(),
     temp_password_expires_at = NULL, invited_at = NULL, deactivated_at = NULL, updated_at = now()
 WHERE id = $1 AND invited_at IS NOT NULL
-RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type AcceptInvitationParams struct {
@@ -57,6 +57,10 @@ func (q *Queries) AcceptInvitation(ctx context.Context, arg AcceptInvitationPara
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
@@ -155,7 +159,7 @@ const createInvitedUser = `-- name: CreateInvitedUser :one
 
 INSERT INTO users (email, name, role, password_hash, invited_at, deactivated_at)
 VALUES ($1, $2, $3, $4, now(), now())
-RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type CreateInvitedUserParams struct {
@@ -203,6 +207,10 @@ func (q *Queries) CreateInvitedUser(ctx context.Context, arg CreateInvitedUserPa
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }
@@ -397,7 +405,7 @@ func (q *Queries) PeekAccountToken(ctx context.Context, arg PeekAccountTokenPara
 const setUserNotifyPrefs = `-- name: SetUserNotifyPrefs :one
 UPDATE users SET email_notify_mentions = $2, email_notify_assignments = $3, email_notify_replies = $4, updated_at = now()
 WHERE id = $1
-RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies
+RETURNING id, email, name, role, password_hash, password_changed_at, password_must_change, totp_secret_enc, totp_enabled_at, totp_last_step, failed_login_count, locked_until, last_login_at, theme, deactivated_at, created_at, updated_at, temp_password_expires_at, invited_at, email_notify_mentions, email_notify_assignments, max_open, availability, last_auto_assigned_at, custom_role_id, permissions, unread_since, email_notify_replies, push_notify_mentions, push_notify_assignments, push_notify_replies, push_notify_sla
 `
 
 type SetUserNotifyPrefsParams struct {
@@ -444,6 +452,10 @@ func (q *Queries) SetUserNotifyPrefs(ctx context.Context, arg SetUserNotifyPrefs
 		&i.Permissions,
 		&i.UnreadSince,
 		&i.EmailNotifyReplies,
+		&i.PushNotifyMentions,
+		&i.PushNotifyAssignments,
+		&i.PushNotifyReplies,
+		&i.PushNotifySla,
 	)
 	return i, err
 }

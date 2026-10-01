@@ -24,6 +24,7 @@ import (
 	"echoo/internal/keyring"
 	"echoo/internal/mailauth"
 	"echoo/internal/metrics"
+	"echoo/internal/push"
 	"echoo/internal/realtime"
 	"echoo/internal/reports"
 	"echoo/internal/scan"
@@ -60,6 +61,7 @@ type Server struct {
 	campaigns *campaigns.Service
 	kb        *kbState
 	sso       *sso.Service
+	push      push.Senders
 
 	ready   readiness
 	metrics *metrics.Registry
@@ -101,6 +103,9 @@ func WithOAuth(m *mailauth.Manager) Option { return func(s *Server) { s.oauth = 
 // WithSysmail enables email for invitations and password resets. Without it those features
 // tell the admin that system mail is not configured.
 func WithSysmail(m *sysmail.Sender) Option { return func(s *Server) { s.sysmail = m } }
+
+// WithPush sends the test notification and tells clients which push services are set up.
+func WithPush(p push.Senders) Option { return func(s *Server) { s.push = p } }
 
 // WithMetrics records request counts and durations by route pattern.
 func WithMetrics(m *metrics.Registry) Option { return func(s *Server) { s.metrics = m } }
@@ -227,6 +232,7 @@ func (s *Server) Handler() *chi.Mux {
 				s.kbRoutes(r)
 				s.trashRoutes(r)
 				s.blocklistRoutes(r)
+				s.pushRoutes(r)
 
 				r.Group(func(r chi.Router) {
 					r.Use(requirePermission)

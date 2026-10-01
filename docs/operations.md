@@ -59,6 +59,8 @@ operations:
 | `ECHOO_STORAGE` | `fs:///data/blobs` | Or `s3://bucket?endpoint=host:port&region=r`, with `ECHOO_S3_ACCESS_KEY` and `ECHOO_S3_SECRET_KEY`. |
 | `ECHOO_METRICS_ADDR` | empty (off) | Address of the Prometheus listener, for example `127.0.0.1:9090`. See [monitoring](#monitoring). |
 | `ECHOO_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error`. |
+| `ECHOO_APNS_KEY`, `_KEY_ID`, `_TEAM_ID`, `_TOPIC`, `_ENVIRONMENT` | empty (off) | Push to the iOS app. See [docs/mobile.md](mobile.md). |
+| `ECHOO_FCM_CREDENTIALS` | empty (off) | Firebase service account key JSON, for push to the Android app. See [docs/mobile.md](mobile.md). |
 
 Any variable can be read from a file with the `_FILE` suffix.
 

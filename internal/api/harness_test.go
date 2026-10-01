@@ -63,10 +63,12 @@ func newHarness(t *testing.T) *harness {
 		TrustedProxies: []netip.Prefix{netip.MustParsePrefix("127.0.0.0/8")},
 	}
 	web := fstest.MapFS{
-		"index.html":       {Data: []byte(`<meta name="csp-nonce" content="__CSP_NONCE__"><div id="root"></div>`)},
-		"assets/app-1.js":  {Data: []byte(`console.log(1)`)},
-		".gitkeep":         {Data: nil},
-		"fonts/plex.woff2": {Data: []byte("font")},
+		"index.html":           {Data: []byte(`<meta name="csp-nonce" content="__CSP_NONCE__"><div id="root"></div>`)},
+		"assets/app-1.js":      {Data: []byte(`console.log(1)`)},
+		".gitkeep":             {Data: nil},
+		"fonts/plex.woff2":     {Data: []byte("font")},
+		"sw.js":                {Data: []byte("self.addEventListener('push', () => {})")},
+		"manifest.webmanifest": {Data: []byte(`{"name":"Echoo"}`)},
 	}
 	reload := &fakeReloader{}
 	srv := New(cfg, pool, svc, web, WithKeyring(keys), WithMailboxReloader(reload))

@@ -266,4 +266,12 @@ func TestSPAAndHeaders(t *testing.T) {
 		}
 	}
 	expect(t, c.do("GET", "/api/v1/nope", nil), 404, "not_found")
+
+	sw := c.do("GET", "/sw.js", nil)
+	if sw.header.Get("Content-Security-Policy") != "default-src 'self'; object-src 'none'; base-uri 'none'" || sw.header.Get("Cache-Control") != "no-cache" {
+		t.Errorf("service worker headers = %v", sw.header)
+	}
+	if m := c.do("GET", "/manifest.webmanifest", nil); m.header.Get("Content-Type") != "application/manifest+json" {
+		t.Errorf("manifest type = %q", m.header.Get("Content-Type"))
+	}
 }
